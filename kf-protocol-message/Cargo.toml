@@ -1,7 +1,7 @@
 [package]
 name = "kf-protocol-message"
 edition = "2018"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Rust kafka protocol message definition"
 repository = "https://github.com/infinyon/fluvio"
