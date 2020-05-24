@@ -9,7 +9,7 @@ use kf_protocol_api::Request;
 use kf_protocol_derive::Decode;
 use kf_protocol_derive::Encode;
 use kf_protocol_derive::KfDefault;
-use flv_types::socket_helpers::ServerAddress;
+use flv_util::socket_helpers::ServerAddress;
 // -----------------------------------
 // KfMetadataRequest
 // -----------------------------------
