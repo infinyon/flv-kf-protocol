@@ -18,4 +18,4 @@ kf-protocol-message = { version = "0.1.1", path = "kf-protocol-message"}
 kf-protocol-fs = { version = "1.0.1", path = "kf-protocol-fs"}
 
 [dev-dependencies]
-flv-util = { version = "0.1.0 "}
+flv-util = { version = "0.2.0 "}
