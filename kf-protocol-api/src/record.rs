@@ -1,29 +1,27 @@
-
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::io::Error;
 use std::io::ErrorKind;
 
+use content_inspector::{inspect, ContentType};
 use log::trace;
-use content_inspector::{ContentType, inspect};
-
+use log::warn;
 
 use kf_protocol::bytes::Buf;
-use kf_protocol::bytes::BufMut;
 use kf_protocol::bytes::BufExt;
+use kf_protocol::bytes::BufMut;
 
 use kf_protocol::Decoder;
 use kf_protocol::DecoderVarInt;
 use kf_protocol::Encoder;
 use kf_protocol::EncoderVarInt;
+use kf_protocol::Version;
 use kf_protocol_derive::Decode;
 use kf_protocol_derive::Encode;
-use kf_protocol::Version;
 
-use crate::Offset;
 use crate::DefaultBatch;
-
+use crate::Offset;
 
 pub type DefaultRecord = Record<DefaultAsyncBuffer>;
 
@@ -82,7 +80,6 @@ impl DefaultAsyncBuffer {
             format!("empty: (0 bytes)")
         }
     }
-
 }
 
 impl From<Option<Vec<u8>>> for DefaultAsyncBuffer {
@@ -131,11 +128,11 @@ impl From<Vec<u8>> for DefaultAsyncBuffer {
 }
 
 impl Encoder for DefaultAsyncBuffer {
-    fn write_size(&self,_version: Version) -> usize {
+    fn write_size(&self, _version: Version) -> usize {
         self.0.var_write_size()
     }
 
-    fn encode<T>(&self, src: &mut T,_version: Version) -> Result<(), Error>
+    fn encode<T>(&self, src: &mut T, _version: Version) -> Result<(), Error>
     where
         T: BufMut,
     {
@@ -146,7 +143,7 @@ impl Encoder for DefaultAsyncBuffer {
 }
 
 impl Decoder for DefaultAsyncBuffer {
-    fn decode<T>(&mut self, src: &mut T,_version: Version) -> Result<(), Error>
+    fn decode<T>(&mut self, src: &mut T, _version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
@@ -158,37 +155,32 @@ impl Decoder for DefaultAsyncBuffer {
 }
 
 #[derive(Default, Debug)]
-pub struct DefaultRecords {
+pub struct RecordSet {
     pub batches: Vec<DefaultBatch>,
 }
 
-
-
-impl fmt::Display for DefaultRecords {
+impl fmt::Display for RecordSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,"{} batches",self.batches.len())
-       
+        write!(f, "{} batches", self.batches.len())
     }
 }
 
-
-
-impl DefaultRecords {
+impl RecordSet {
     pub fn add(mut self, batch: DefaultBatch) -> Self {
         self.batches.push(batch);
         self
     }
 }
 
-impl Decoder for DefaultRecords {
-    fn decode<T>(&mut self, src: &mut T,version: Version) -> Result<(), Error>
+impl Decoder for RecordSet {
+    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
-        trace!("Decoding DefaultRecords");
+        trace!("Decoding Record sets");
         let mut len: i32 = 0;
-        len.decode(src,version)?;
-        trace!("recordsets len: {}", len);
+        len.decode(src, version)?;
+        trace!("record sets len: {}", len);
 
         if src.remaining() < len as usize {
             return Err(Error::new(
@@ -198,31 +190,38 @@ impl Decoder for DefaultRecords {
         }
 
         let mut buf = src.take(len as usize);
+
         while buf.remaining() > 0 {
             trace!("decoding batches");
             let mut batch = DefaultBatch::default();
-            batch.decode(&mut buf,version)?;
-            self.batches.push(batch)
+            match batch.decode(&mut buf, version) {
+                Ok(_) => self.batches.push(batch),
+                Err(err) => match err.kind() {
+                    ErrorKind::UnexpectedEof => {
+                        warn!("not enough bytes for batch: {}", buf.remaining());
+                        return Ok(())
+                    }
+                    _ => {
+                        warn!("problem decoding batch: {}", err);
+                        return Ok(())
+                    }
+                },
+            }
         }
 
-        if buf.remaining() > 0 {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "not enough buf for batches",
-            ));
-        }
+        
         Ok(())
     }
 }
 
-impl Encoder for DefaultRecords {
-    fn write_size(&self,version: Version) -> usize {
+impl Encoder for RecordSet {
+    fn write_size(&self, version: Version) -> usize {
         self.batches
             .iter()
             .fold(4, |sum, val| sum + val.write_size(version))
     }
 
-    fn encode<T>(&self, dest: &mut T,version: Version) -> Result<(), Error>
+    fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
     where
         T: BufMut,
     {
@@ -232,12 +231,12 @@ impl Encoder for DefaultRecords {
 
         for batch in &self.batches {
             trace!("decoding batch..");
-            batch.encode(&mut out,version)?;
+            batch.encode(&mut out, version)?;
         }
 
         let length: i32 = out.len() as i32;
-        trace!("recordset has {} bytes", length);
-        length.encode(dest,version)?;
+        trace!("record set has {} bytes", length);
+        length.encode(dest, version)?;
 
         dest.put_slice(&mut out);
         Ok(())
@@ -254,7 +253,7 @@ pub struct RecordHeader {
 }
 
 impl RecordHeader {
-    pub fn set_offset_delta(&mut self,delta: Offset) {
+    pub fn set_offset_delta(&mut self, delta: Offset) {
         self.offset_delta = delta;
     }
 }
@@ -321,12 +320,11 @@ where
     }
 }
 
-
 impl<B> Encoder for Record<B>
 where
     B: Encoder + Default,
 {
-    fn write_size(&self,version: Version) -> usize {
+    fn write_size(&self, version: Version) -> usize {
         let inner_size = self.preamble.write_size(version)
             + self.key.write_size(version)
             + self.value.write_size(version)
@@ -335,14 +333,14 @@ where
         len.var_write_size() + inner_size
     }
 
-    fn encode<T>(&self, dest: &mut T,version: Version) -> Result<(), Error>
+    fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
     where
         T: BufMut,
     {
         let mut out: Vec<u8> = Vec::new();
-        self.preamble.encode(&mut out,version)?;
-        self.key.encode(&mut out,version)?;
-        self.value.encode(&mut out,version)?;
+        self.preamble.encode(&mut out, version)?;
+        self.key.encode(&mut out, version)?;
+        self.value.encode(&mut out, version)?;
         self.headers.encode_varint(&mut out)?;
         let len: i64 = out.len() as i64;
         trace!("record encode as {} bytes", len);
@@ -356,7 +354,7 @@ impl<B> Decoder for Record<B>
 where
     B: Decoder,
 {
-    fn decode<T>(&mut self, src: &mut T,version: Version) -> Result<(), Error>
+    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
@@ -372,10 +370,10 @@ where
                 "not enought for record",
             ));
         }
-        self.preamble.decode(src,version)?;
+        self.preamble.decode(src, version)?;
         trace!("offset delta: {}", self.preamble.offset_delta);
-        self.key.decode(src,version)?;
-        self.value.decode(src,version)?;
+        self.key.decode(src, version)?;
+        self.value.decode(src, version)?;
         self.headers.decode_varint(src)?;
 
         Ok(())
@@ -405,7 +403,7 @@ mod test {
             0x00, // 0 header
         ];
 
-        let record = DefaultRecord::decode_from(&mut Cursor::new(&data),0)?;
+        let record = DefaultRecord::decode_from(&mut Cursor::new(&data), 0)?;
         assert_eq!(record.as_bytes(0)?.len(), data.len());
 
         assert_eq!(record.write_size(0), data.len());
@@ -420,4 +418,45 @@ mod test {
         Ok(())
     }
 
+    /// test decoding of records when one of the batch was truncated
+    #[test]
+    fn test_decode_batch_truncation() {
+
+
+        use super::RecordSet;
+        use crate::DefaultBatch;
+        use crate::DefaultRecord;
+
+        fn create_batch() -> DefaultBatch {
+            let record: DefaultRecord = vec![0x74, 0x65, 0x73, 0x74].into();
+            let mut batch = DefaultBatch::default();
+            batch.records.push(record);
+            batch
+        }
+       
+        // add 3 batches
+        let batches = RecordSet::default()
+            .add(create_batch())
+            .add(create_batch())
+            .add(create_batch());
+
+        const TRUNCATED: usize = 10;
+
+        let mut bytes = batches.as_bytes(0).expect("bytes");
+    
+        let original_len = bytes.len();
+        let _ = bytes.split_off(original_len-TRUNCATED); // truncate record sets
+        let body = bytes.split_off(4);  // split off body so we can manipulate len
+
+        let new_len = (original_len - TRUNCATED - 4) as i32;
+        let mut out = vec![];
+        new_len.encode(&mut out, 0).expect("encoding");
+        out.extend_from_slice(&body);
+
+        assert_eq!(out.len(),original_len - TRUNCATED);
+
+        println!("decoding...");
+        let decoded_batches = RecordSet::decode_from(&mut Cursor::new(out), 0).expect("decoding");
+        assert_eq!(decoded_batches.batches.len(), 2);
+    }
 }
