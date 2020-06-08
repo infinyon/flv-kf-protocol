@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use kf_protocol::Decoder;
 use kf_protocol::Encoder;
 
-use kf_protocol_api::DefaultRecords;
+use kf_protocol_api::RecordSet;
 
 use crate::fetch::{KfFetchResponse, KfFetchRequest};
 use crate::fetch::FetchableTopicResponse;
