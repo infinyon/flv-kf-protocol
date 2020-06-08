@@ -1,6 +1,6 @@
 [package]
 name = "kf-protocol-fs"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2018"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "zero copy file semantics for kafka protocol"
@@ -22,5 +22,5 @@ bytes = "0.5.3"
 futures = { version = "0.3.4" }
 flv-future-aio = { version = "2.1.0" }
 kf-protocol-core = { version = "0.1.0", path = "../kf-protocol-core"}
-kf-protocol-message = { version = "0.1.0", path = "../kf-protocol-message"}
-kf-protocol-api = { version = "0.1.0", path = "../kf-protocol-api"}
+kf-protocol-message = { version = "1.0.0", path = "../kf-protocol-message"}
+kf-protocol-api = { version = "1.0.0", path = "../kf-protocol-api"}

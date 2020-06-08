@@ -27,7 +27,7 @@ pub use self::batch::BatchRecords;
 pub use self::batch::DefaultBatch;
 pub use self::batch::DefaultBatchRecords;
 pub use self::record::DefaultRecord;
-pub use self::record::DefaultRecords;
+pub use self::record::RecordSet;
 pub use self::record::Record;
 pub use self::record::RecordHeader;
 pub use self::batch::BATCH_HEADER_SIZE;
