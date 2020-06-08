@@ -8,8 +8,8 @@ use kf_protocol_api::RecordSet;
 use crate::fetch::{KfFetchResponse, KfFetchRequest};
 use crate::fetch::FetchableTopicResponse;
 
-pub type DefaultKfFetchRequest = KfFetchRequest<DefaultRecords>;
-pub type DefaultKfFetchResponse = KfFetchResponse<DefaultRecords>;
+pub type DefaultKfFetchRequest = KfFetchRequest<RecordSet>;
+pub type DefaultKfFetchResponse = KfFetchResponse<RecordSet>;
 
 // -----------------------------------
 // Implementation

@@ -3,15 +3,15 @@ use std::fmt::Debug;
 use kf_protocol::Decoder;
 use kf_protocol::Encoder;
 
-use kf_protocol_api::DefaultRecords;
+use kf_protocol_api::RecordSet;
 
 use crate::produce::{KfProduceResponse, KfProduceRequest};
 use crate::produce::TopicProduceData;
 use crate::produce::{PartitionProduceData, PartitionProduceResponse};
 
-pub type DefaultKfProduceRequest = KfProduceRequest<DefaultRecords>;
-pub type DefaultKfTopicRequest = TopicProduceData<DefaultRecords>;
-pub type DefaultKfPartitionRequest = PartitionProduceData<DefaultRecords>;
+pub type DefaultKfProduceRequest = KfProduceRequest<RecordSet>;
+pub type DefaultKfTopicRequest = TopicProduceData<RecordSet>;
+pub type DefaultKfPartitionRequest = PartitionProduceData<RecordSet>;
 
 // -----------------------------------
 // Implementation - KfProduceRequest

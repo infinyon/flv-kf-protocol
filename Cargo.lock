@@ -483,7 +483,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-message"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
  "content_inspector",
  "crc32c",
