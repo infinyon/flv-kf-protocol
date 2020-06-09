@@ -41,7 +41,6 @@
 This project is licensed under the [Apache license](LICENSE-APACHE).
 
 ### Contribution
+If you'd like to contribute to the project, please read our [Contributing guide](CONTRIBUTING.md).
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Fluvio by you, shall be licensed as Apache, without any additional
-terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in flv-kf-protocol by you, shall be licensed as Apache, without any additional terms or conditions.
