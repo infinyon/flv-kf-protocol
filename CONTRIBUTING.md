@@ -8,15 +8,12 @@ Thank you for contributing. No matter how large or small, contributions are alwa
 
 [Ask a Question](#ask-a-question)
 
-[Getting Started](#getting-started)
-
 [Contributing](#contributing)
 
 ## Assumptions
 Familiarity with
 - [Rust](https://www.rust-lang.org)
 - [Kafka](https://kafka.apache.org/)
-- [Fluvio](https://www.fluvio.io/docs/)
 
 Currently, flv-kf-protocol supports the following platforms:
 - macOS X
@@ -25,12 +22,6 @@ Currently, flv-kf-protocol supports the following platforms:
 ## Ask a Question
 
 Please open an Issue on GitHub with the label `question`.
-
-## Getting Started
-
-Follow our [Installation Guide](https://github.com/infinyon/fluvio/blob/master/doc/INSTALL.md) to get fluvio up and running.
-
-To learn about the Fluvio Architecture, please visit the [Developer](https://github.com/infinyon/fluvio/blob/master/DEVELOPER.md) section.
 
 ## Contributing
 
