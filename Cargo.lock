@@ -421,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "flv-util 0.2.0",
  "kf-protocol-api",
@@ -435,7 +435,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-api"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "content_inspector",
  "crc32c",
