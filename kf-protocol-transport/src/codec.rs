@@ -36,15 +36,15 @@ impl Decoder for KfCodec {
             let mut src = Cursor::new(&*bytes);
             let mut packet_len: i32 = 0;
             packet_len.decode(&mut src, 0)?;
-            trace!("KCodec Decoder: raw: {}, message size: {}", len, packet_len);
-            if (packet_len + 4) as usize <= len {
+            trace!("KCodec Decoder: total raw: {}, message size: {}", len, packet_len);
+            if (packet_len + 4) as usize <= bytes.len() {
                 trace!(
                     "KCodec Decoder: all packets are in buffer len: {} ",
                     packet_len + 4
                 );
-                let rest = bytes.split_off(4);
-                bytes.truncate(0);
-                Ok(Some(rest))
+                let mut buf = bytes.split_to((packet_len + 4) as usize);
+                let message = buf.split_off(4);   // truncate length  
+                Ok(Some(message))
             } else {
                 trace!(
                     "KCodec Decoder buffer len: {} is less than packet+4: {}, waiting",
@@ -106,40 +106,64 @@ mod test {
 
         let server_ft = async {
             debug!("server: binding");
-            let listener = TcpListener::bind(&addr).await?;
+            let listener = TcpListener::bind(&addr).await.expect("bind");
             debug!("server: successfully binding. waiting for incoming");
             let mut incoming = listener.incoming();
             while let Some(stream) = incoming.next().await {
                 debug!("server: got connection from client");
-                let tcp_stream = stream?;
+                let tcp_stream = stream.expect("stream");
+
                 let framed = Framed::new(tcp_stream.compat(), KfCodec {});
                 let (mut sink, _) = framed.split();
+
                 let data: Vec<u8> = vec![0x1, 0x02, 0x03, 0x04, 0x5];
-                //  debug!("server encoding original vector with len: {}", data.len());
-                let mut buf = vec![];
-                data.encode(&mut buf, 0)?;
-                //  debug!("server encoder buffer len: {}, should be 9 = 5 + 4(len)", buf.len());
-                debug!(
-                    "server: writing to client vector encoded len: {}",
-                    buf.len()
-                );
-                assert_eq!(buf.len(), 9); //  4(array len)+ 5 bytes
+                // send 2 times in order
+                for _ in 0..2u16  {
+                    
+                    //  debug!("server encoding original vector with len: {}", data.len());
+                    let mut buf = vec![];
+                    data.encode(&mut buf, 0)?;
+                    debug!(
+                        "server: writing to client vector encoded len: {}",
+                        buf.len()
+                    );
+                    assert_eq!(buf.len(), 9); //  4(array len)+ 5 bytes
 
-                // write buffer length since encoder doesn't write
-                // need to send out len
-                let mut len_buf = vec![];
-                let len = buf.len() as i32;
-                len.encode(&mut len_buf, 0)?;
-                sink.send(Bytes::from(len_buf)).await?;
+                    // write buffer length since encoder doesn't write
+                    // need to send out len
+                    let mut len_buf = vec![];
+                    let len = buf.len() as i32;
+                    len.encode(&mut len_buf, 0).expect("encoding");
+                    sink.send(Bytes::from(len_buf)).await.expect("sending");
 
-                sink.send(Bytes::from(buf)).await?;
-                /*
-                debug!("server: sending 2nd value to client");
-                let data2 = vec![0x20,0x11];
-                await!(sink.send(to_bytes(data2)))?;
-                // sleep for 100 ms to give client time
-                debug!("wait for 50 ms to give receiver change to process");
-                */
+                    sink.send(Bytes::from(buf)).await.expect("sending");
+                }
+
+                // last one, we send split send, to test partial send
+                {
+                    let mut buf = vec![];
+                    data.encode(&mut buf, 0)?;
+                    debug!(
+                        "server: writing to client vector encoded len: {}",
+                        buf.len()
+                    );
+                    assert_eq!(buf.len(), 9); //  4(array len)+ 5 bytes
+
+                    // write buffer length since encoder doesn't write
+                    // need to send out len
+                    let mut len_buf = vec![];
+                    let len = buf.len() as i32;
+                    len.encode(&mut len_buf, 0).expect("encoding");
+                    sink.send(Bytes::from(len_buf)).await.expect("sending");
+
+                    // split buf into two segments, decode should reassembly them
+                    let buf2 = buf.split_off(5);
+                    sink.send(Bytes::from(buf)).await.expect("sending");
+                    flv_future_aio::timer::sleep(time::Duration::from_millis(10)).await;
+                    sink.send(Bytes::from(buf2)).await.expect("sending");
+
+                }
+                
                 flv_future_aio::timer::sleep(time::Duration::from_millis(50)).await;
                 debug!("finishing. terminating server");
                 return Ok(()) as Result<(), Error>;
@@ -152,39 +176,29 @@ mod test {
             debug!("client: sleep to give server chance to come up");
             sleep(time::Duration::from_millis(100)).await;
             debug!("client: trying to connect");
-            let tcp_stream = TcpStream::connect(&addr).await?;
+            let tcp_stream = TcpStream::connect(&addr).await.expect("connect");
             debug!("client: got connection. waiting");
             let framed = Framed::new(tcp_stream.compat(), KfCodec {});
             let (_, mut stream) = framed.split();
-            if let Some(value) = stream.next().await {
-                debug!("client :received first value from server");
-                let mut bytes = value?;
-                debug!("client: received bytes len: {}", bytes.len());
-                assert_eq!(bytes.len(), 9, "total bytes is 9");
-                let mut decoded_values = vec![];
-                decoded_values
-                    .decode(&mut bytes, 0)
-                    .expect("vector decoding failed");
-                assert_eq!(decoded_values.len(), 5);
-                assert_eq!(decoded_values[0], 1);
-                assert_eq!(decoded_values[1], 2);
-                debug!("all test pass");
-            } else {
-                assert!(false, "no first value received");
+            for _ in 0..3u16 {
+                if let Some(value) = stream.next().await {
+                    debug!("client :received first value from server");
+                    let mut bytes = value.expect("bytes");
+                    debug!("client: received bytes len: {}", bytes.len());
+                    assert_eq!(bytes.len(), 9, "total bytes is 9");
+                    let mut decoded_values = vec![];
+                    decoded_values
+                        .decode(&mut bytes, 0)
+                        .expect("vector decoding failed");
+                    assert_eq!(decoded_values.len(), 5);
+                    assert_eq!(decoded_values[0], 1);
+                    assert_eq!(decoded_values[1], 2);
+                    debug!("all test pass");
+                } else {
+                    assert!(false, "no first value received");
+                }
             }
 
-            debug!("waiting for 2nd value");
-            /*
-            if let Some(value) = await!(stream.next()) {
-                debug!("client: received 2nd value from server");
-                let mut bytes = value?;
-                let values = bytes.take();
-                assert_eq!(values.len(),2);
-
-            } else {
-                assert!(false,"no second value received");
-            }
-            */
 
             debug!("finished client");
 
