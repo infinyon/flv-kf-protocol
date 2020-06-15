@@ -1,10 +1,10 @@
 use std::io::Cursor;
 use std::io::Error as IoError;
 
+use log::trace;
 use bytes::BufMut;
 use bytes::Bytes;
 use bytes::BytesMut;
-use log::trace;
 use tokio_util::codec::Decoder;
 use tokio_util::codec::Encoder;
 
@@ -36,11 +36,12 @@ impl Decoder for KfCodec {
             let mut src = Cursor::new(&*bytes);
             let mut packet_len: i32 = 0;
             packet_len.decode(&mut src, 0)?;
-            trace!("KCodec Decoder: total raw: {}, message size: {}", len, packet_len);
+            trace!("KCodec Decoder: received buffer: {}, message size: {}", len, packet_len);
             if (packet_len + 4) as usize <= bytes.len() {
                 trace!(
-                    "KCodec Decoder: all packets are in buffer len: {} ",
-                    packet_len + 4
+                    "KCodec Decoder: all packets are in buffer len: {}, excess {}",
+                    packet_len + 4,
+                    bytes.len() - (packet_len + 4) as usize
                 );
                 let mut buf = bytes.split_to((packet_len + 4) as usize);
                 let message = buf.split_off(4);   // truncate length  
@@ -61,14 +62,13 @@ impl Decoder for KfCodec {
 }
 
 /// Implement encoder for Kafka Codec
-/// We don't write buffer length because of file slice.  The buffer length
-/// is encoded in the
+/// This is straight pass thru, actual encoding is done file slice
 impl Encoder<Bytes> for KfCodec {
 
     type Error = IoError;
 
     fn encode(&mut self, data: Bytes, buf: &mut BytesMut) -> Result<(), IoError> {
-        trace!("KCodec Encoder: Encoding data with {} bytes", data.len());
+        trace!("KCodec Encoder: Encoding raw data with {} bytes", data.len());
         buf.put(data);
         Ok(())
     }

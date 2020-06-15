@@ -177,22 +177,23 @@ impl Decoder for RecordSet {
     where
         T: Buf,
     {
-        trace!("Decoding Record sets");
+        trace!("raw buffer len: {}",src.remaining());
         let mut len: i32 = 0;
         len.decode(src, version)?;
-        trace!("record sets len: {}", len);
+        trace!("Record sets decoded content len: {}", len);
 
         if src.remaining() < len as usize {
             return Err(Error::new(
                 ErrorKind::UnexpectedEof,
-                "not enough buf for batches",
+                format!("expected message len: {} but founded {}",len,src.remaining())
             ));
         }
 
         let mut buf = src.take(len as usize);
 
+        let mut count = 0;
         while buf.remaining() > 0 {
-            trace!("decoding batches");
+            trace!("decoding batches: {}, remaining bytes: {}",count,buf.remaining());
             let mut batch = DefaultBatch::default();
             match batch.decode(&mut buf, version) {
                 Ok(_) => self.batches.push(batch),
@@ -207,6 +208,7 @@ impl Decoder for RecordSet {
                     }
                 },
             }
+            count = count + 1;
         }
 
         
@@ -225,17 +227,17 @@ impl Encoder for RecordSet {
     where
         T: BufMut,
     {
-        trace!("encoding Default Records");
+        trace!("Record set encoding");
 
         let mut out: Vec<u8> = Vec::new();
 
         for batch in &self.batches {
-            trace!("decoding batch..");
+            trace!("encoding batch..");
             batch.encode(&mut out, version)?;
         }
 
         let length: i32 = out.len() as i32;
-        trace!("record set has {} bytes", length);
+        trace!("Record Set encode len: {}", length);
         length.encode(dest, version)?;
 
         dest.put_slice(&mut out);

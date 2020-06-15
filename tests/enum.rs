@@ -104,58 +104,6 @@ fn test_var_encode() {
 
 
 
-/*
-impl Encoder for VariantEnum {
-
-    fn write_size(&self) -> usize {
-            match self {
-                VariantEnum::A(val) => val.write_size(),
-                VariantEnum::C(val) => val.write_size(),
-            }
-        }
-
-    fn encode<T>(&self, src: &mut T) -> Result<(), IoError>
-        where
-            T: BufMut,
-        {
-            match self {
-                VariantEnum::A(val) => val.encode(src),
-                VariantEnum::C(val) => val.encode(src)
-            }
-            
-        }
-}
-*/
-
-/*
-impl Decoder for Mix {
-
-     fn decode<T>(&mut self, src: &mut T) -> Result<(), Error>
-    where
-        T: Buf {
-
-            let mut value: u8 = 0;
-            value.decode(src)?;
-            match value {
-                2 => {
-                    *self = Mix::A;
-                }
-                3 => {
-                    *self = Mix::C;
-                }
-                _ => return Err(Error::new(
-                        ErrorKind::UnexpectedEof,
-                        format!("invalid value for Mix: {}",value)
-                ))
-            }
-
-            Ok(())
-        }
-   
-}
-*/
-
-
 
 #[derive(Encode,PartialEq,Decode,Debug)]
 #[repr(u8)]
