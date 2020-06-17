@@ -199,9 +199,9 @@ dependencies = [
 
 [[package]]
 name = "flv-future-aio"
-version = "2.2.1"
+version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c1974ffb1ac46339f998aa2cbac4a7243357e412b7e3de86f42ab7db11042f8"
+checksum = "7255017399f7188f752b661ba972d48726ef3a4e066546d4d17df949bb763be0"
 dependencies = [
  "async-std",
  "async-trait",
@@ -398,7 +398,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "flv-util 0.2.0",
  "kf-protocol-api",
@@ -412,7 +412,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-api"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "content_inspector",
  "crc32c",
@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bytes",
  "log",
@@ -437,7 +437,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-derive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "log",
  "proc-macro2 0.4.30",
@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-fs"
-version = "1.1.0"
+version = "2.0.1"
 dependencies = [
  "bytes",
  "flv-future-aio",
@@ -460,7 +460,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-message"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "content_inspector",
  "crc32c",
@@ -475,7 +475,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-transport"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "bytes",
  "flv-future-aio",
@@ -606,9 +606,9 @@ checksum = "0b631f7e854af39a1739f401cf34a8a013dfe09eac4fa4dba91e9768bd28168d"
 
 [[package]]
 name = "paste"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d508492eeb1e5c38ee696371bf7b9fc33c83d46a7d451606b96458fbbbdc2dec"
+checksum = "026c63fe245362be0322bfec5a9656d458d13f9cfb1785d1b38458b9968e8080"
 dependencies = [
  "paste-impl",
  "proc-macro-hack",
@@ -616,14 +616,11 @@ dependencies = [
 
 [[package]]
 name = "paste-impl"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84f328a6a63192b333fce5fbb4be79db6758a4d518dfac6d54412f1492f72d32"
+checksum = "7b9281a268ec213237dcd2aa3c3d0f46681b04ced37c1616fd36567a9e6954b0"
 dependencies = [
  "proc-macro-hack",
- "proc-macro2 1.0.18",
- "quote 1.0.7",
- "syn 1.0.31",
 ]
 
 [[package]]
