@@ -1,10 +1,10 @@
 [package]
 name = "kf-protocol-message"
 edition = "2018"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Rust kafka protocol message definition"
-repository = "https://github.com/infinyon/fluvio"
+repository = "https://github.com/infinyon/flv-kf-protocol"
 license = "Apache-2.0"
 categories = ["encoding","api-bindings"]
 

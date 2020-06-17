@@ -1,10 +1,10 @@
 [package]
 name = "kf-protocol-derive"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description =  "Procedure macro to encode/decode rust structure/enum using kafka protocol"
-repository = "https://github.com/infinyon/fluvio"
+repository = "https://github.com/infinyon/flv-kf-protocol"
 license = "Apache-2.0"
 categories = ["encoding"]
 
