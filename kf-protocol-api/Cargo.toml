@@ -11,7 +11,7 @@ categories = ["encoding","api-bindings"]
 
 [dependencies]
 log = "0.4.8"
-crc32c = "0.4.0"
+crc32c = { git = "https://github.com/zowens/crc32c", rev = "b383146554bc0a516b83ed3404cff2488844a676" }
 content_inspector = "0.2.4"
 serde = { version ="1.0.103", features = ['derive'] }
 paste = "0.1.5"
