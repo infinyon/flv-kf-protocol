@@ -150,8 +150,9 @@ dependencies = [
 
 [[package]]
 name = "crc32c"
-version = "0.4.0"
-source = "git+https://github.com/zowens/crc32c?rev=b383146554bc0a516b83ed3404cff2488844a676#b383146554bc0a516b83ed3404cff2488844a676"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6419af41d57055d753ec718ab9318e08d35378f0094b3ae4779ae15857951aa"
 
 [[package]]
 name = "crossbeam-utils"
@@ -424,7 +425,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-api"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "content_inspector",
  "crc32c",
@@ -472,7 +473,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-message"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "content_inspector",
  "flv-util 0.2.1",
