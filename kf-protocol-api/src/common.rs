@@ -28,6 +28,10 @@ pub struct ReplicaKey {
     pub partition: i32,
 }
 
+unsafe impl Send for ReplicaKey{}
+
+unsafe impl Sync for ReplicaKey{}
+
 impl ReplicaKey {
     pub fn new<S, P>(topic: S, partition: P) -> Self
     where
