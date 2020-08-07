@@ -1,23 +1,21 @@
-
-
 pub mod derive {
     pub use kf_protocol_derive::*;
 }
 
 pub use kf_protocol_core::Decoder;
-pub use kf_protocol_core::Encoder;
 pub use kf_protocol_core::DecoderVarInt;
+pub use kf_protocol_core::Encoder;
 pub use kf_protocol_core::EncoderVarInt;
 pub use kf_protocol_core::Version;
 
 pub mod bytes {
     pub use kf_protocol_core::bytes::Buf;
-    pub use kf_protocol_core::bytes::BufMut;
     pub use kf_protocol_core::bytes::BufExt;
+    pub use kf_protocol_core::bytes::BufMut;
     pub use kf_protocol_core::bytes::BufMutExt;
 }
 
-pub mod api  {
+pub mod api {
     pub use kf_protocol_api::*;
 }
 

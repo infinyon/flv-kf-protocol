@@ -1,20 +1,20 @@
 extern crate proc_macro;
 
+mod api;
 mod de;
 mod ser;
 mod util;
-mod api;
 mod version;
 
-pub(crate) use self::util::default_int_type;
-use self::de::generate_decode_traits;
-use self::ser::generate_encode_traits;
 use self::api::generate_request_traits;
 use self::api::parse_and_generate_api;
+use self::de::generate_decode_traits;
 use self::de::generate_default_traits;
+use self::ser::generate_encode_traits;
+pub(crate) use self::util::default_int_type;
 
 use proc_macro::TokenStream;
-use syn::DeriveInput;
+use syn::parse_macro_input;
 
 /// Custom derive for decoding structure or enum from bytes using Kafka protocol format.
 /// This assumes all fields implement kafka decode traits.
@@ -30,15 +30,12 @@ use syn::DeriveInput;
 ///     val: u8
 /// }
 ///
-/// fn main() {
+/// let data = [
+///     0x04
+/// ];
 ///
-///    let data = [
-///        0x04
-///    ];
-///
-///    let record = SimpleRecord::decode_from(&mut Cursor::new(&data),0).expect("decode");
-///    assert_eq!(record.val,4);
-/// }
+/// let record = SimpleRecord::decode_from(&mut Cursor::new(&data),0).expect("decode");
+/// assert_eq!(record.val,4);
 ///
 /// ```
 ///
@@ -81,13 +78,11 @@ use syn::DeriveInput;
 ///
 ///
 #[proc_macro_derive(Decode, attributes(varint, fluvio_kf))]
-pub fn kf_decode(input: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse(input).unwrap();
-
-    let expanded = generate_decode_traits(&ast);
+pub fn kf_decode(tokens: TokenStream) -> TokenStream {
+    let inputs = parse_macro_input![tokens as syn::DeriveInput];
+    let expanded = generate_decode_traits(&inputs);
     expanded.into()
 }
-
 
 /// Custom derive for encoding structure or enum to bytes using Kafka protocol format.
 /// This assumes all fields(or enum variants) implement kafka encode traits.
@@ -103,44 +98,41 @@ pub fn kf_decode(input: TokenStream) -> TokenStream {
 ///     val: u8
 /// }
 ///
-/// fn main() {
+/// let data = vec![];
 ///
-///    let data = vec![];
-/// 
-///    let record = SimpleRecord { val: 4};
-///    recprd.encode(&mut data,0);
+/// let record = SimpleRecord { val: 4};
+/// recprd.encode(&mut data,0);
 ///     
-///    assert_eq!(data[0],4);
-/// }
+/// assert_eq!(data[0],4);
 ///
 /// ```
 ///
 ///
 /// Encode applys to either Struct of Enum.  
 ///
-/// 
+///
 /// Encode respects version attributes.  See Decode derive.
 ///
 ///
-/// 
+///
 #[proc_macro_derive(Encode, attributes(varint, fluvio_kf))]
-pub fn kf_encode(input: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse(input).unwrap();
+pub fn kf_encode(tokens: TokenStream) -> TokenStream {
+    let inputs = parse_macro_input![tokens as syn::DeriveInput];
 
-    let expanded = generate_encode_traits(&ast);
+    let expanded = generate_encode_traits(&inputs);
     expanded.into()
 }
 
 #[proc_macro]
-pub fn kf_api(input: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse(input).unwrap();
+pub fn kf_api(tokens: TokenStream) -> TokenStream {
+    let inputs = parse_macro_input![tokens as syn::DeriveInput];
 
-    let expanded = parse_and_generate_api(&ast);
+    let expanded = parse_and_generate_api(&inputs);
     expanded.into()
 }
 
 /// Custom derive for implementating Request trait.
-/// This derives requires `fluvio_kf` 
+/// This derives requires `fluvio_kf`
 ///
 /// # Examples
 ///
@@ -155,35 +147,33 @@ pub fn kf_api(input: TokenStream) -> TokenStream {
 /// pub struct SimpleRequest {
 ///     val: u8
 /// }
-/// 
-/// 
+///
+///
 /// #[derive(Encode,Decode,Default)]
 /// #[fluvio_kf(default)]
 /// pub struct TestResponse {
 ///     pub value: i8,
 /// }
-/// 
+///
 /// ```
 ///
 /// RequestApi derives respects following attributes in `fluvio_kf`
-/// 
+///
 /// * `api_min_version`:  min version that API supports.  This is required
 /// * `api_max_version`:  max version that API supports.  This is optional.
 /// * `api_key`:  API number.  This is required
 /// * `response`:  Response struct.  This is required
 ///
 #[proc_macro_derive(RequestApi, attributes(varint, fluvio_kf))]
-pub fn kf_request(input: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse(input).unwrap();
+pub fn kf_request(tokens: TokenStream) -> TokenStream {
+    let inputs = parse_macro_input![tokens as syn::DeriveInput];
 
-    let expanded = generate_request_traits(&ast);
+    let expanded = generate_request_traits(&inputs);
     expanded.into()
 }
 
-
-
 /// Custom derive for generating default structure
-/// 
+///
 ///
 /// Example:
 ///
@@ -194,19 +184,16 @@ pub fn kf_request(input: TokenStream) -> TokenStream {
 ///     #[fluvio_kf(default = "-1" )]
 ///     val: u8
 /// }
-/// 
-/// fn main() {
 ///
-///    let record = SimpleRecord::default;
-///    assert_eq!(record.val,-1);
-/// }
+/// let record = SimpleRecord::default;
+/// assert_eq!(record.val,-1);
 /// ```
 ///
 /// `default` assignment can be any Rust expression.
 #[proc_macro_derive(KfDefault, attributes(fluvio_kf))]
-pub fn kf_default(input: TokenStream) -> TokenStream {
-    let ast: DeriveInput = syn::parse(input).unwrap();
+pub fn kf_default(tokens: TokenStream) -> TokenStream {
+    let inputs = parse_macro_input![tokens as syn::DeriveInput];
 
-    let expanded = generate_default_traits(&ast);
+    let expanded = generate_default_traits(&inputs);
     expanded.into()
 }

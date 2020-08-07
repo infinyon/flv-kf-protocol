@@ -1,6 +1,6 @@
 [package]
 name = "kf-protocol-derive"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2018"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description =  "Procedure macro to encode/decode rust structure/enum using kafka protocol"
@@ -13,7 +13,10 @@ proc-macro = true
 doctest = false
 
 [dependencies]
-proc-macro2 = "0.4.30"
-quote = "0.6.12"
-syn = { version = "0.15.34", features = ["extra-traits"] }
-log = "0.4.8"
+proc-macro2 = "1.0.19"
+quote = "1.0.7"
+log = "0.4"
+
+[dependencies.syn]
+version = "1.0.38"
+features = ["full"]
