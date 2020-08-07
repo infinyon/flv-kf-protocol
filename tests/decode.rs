@@ -1,9 +1,8 @@
 use std::io::Cursor;
 
 use kf_protocol::derive::Decode;
-use kf_protocol::DecoderVarInt;
 use kf_protocol::Decoder;
-
+use kf_protocol::DecoderVarInt;
 
 #[derive(Decode, Default, Debug)]
 pub struct SimpleRecord {
@@ -26,7 +25,7 @@ fn test_decode_record() {
 
     let mut buf = Cursor::new(data);
 
-    let result = SimpleRecord::decode_from(&mut buf,0);
+    let result = SimpleRecord::decode_from(&mut buf, 0);
     assert!(result.is_ok());
     let record = result.unwrap();
     assert_eq!(record.len, 10);
@@ -41,7 +40,7 @@ fn test_decode_recordset() {
         0x04, // attributes
     ];
 
-    let result = RecordSet::decode_from(&mut Cursor::new(&data),0);
+    let result = RecordSet::decode_from(&mut Cursor::new(&data), 0);
     assert!(result.is_ok());
     let recordset = result.unwrap();
     let records = &recordset.records;

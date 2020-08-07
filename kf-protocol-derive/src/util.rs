@@ -1,145 +1,104 @@
-
-use syn::Ident;
+use proc_macro2::Span;
 use syn::Attribute;
-use syn::Meta;
-use syn::NestedMeta;
-use syn::MetaNameValue;
+use syn::Ident;
 use syn::Lit;
 use syn::LitStr;
-use proc_macro2::Span;
-
+use syn::Meta;
+use syn::MetaNameValue;
+use syn::NestedMeta;
 
 /// find type using rep, if not found return u8
-pub(crate) fn default_int_type(attrs: &Vec<Attribute>) -> Ident {
-    let mut rep_list = vec![];
+pub(crate) fn default_int_type(attrs: &[Attribute]) -> Ident {
+    let mut rep_result: Option<Ident> = None;
+    let default_result = Ident::new("u8", Span::call_site());
     for attr in attrs {
-        let meta = attr.parse_meta().expect("meta");
-        match meta {
-            Meta::List(meta_list) => {
-                for attr_meta in meta_list.nested.iter() {
-                    match attr_meta {
-                        NestedMeta::Meta(inner_meta) => {                            
-                            match inner_meta {
-                                Meta::Word(ident) => rep_list.push(ident.clone()),
-                                _ => {}
-                            } 
-                        }
-                        _ => {}
+        if let Meta::List(meta_list) = attr.parse_meta().expect("meta") {
+            for attr_meta in meta_list.nested.iter() {
+                if let NestedMeta::Meta(Meta::Path(path)) = attr_meta {
+                    if rep_result.is_none() {
+                        rep_result = path.get_ident().cloned();
                     }
-                   
                 }
             }
-            _ => {}
         }
-       
     }
-    
-    if rep_list.len() == 0 { Ident::new("u8",Span::call_site()) } else { rep_list.remove(0) }
 
+    rep_result.unwrap_or_else(|| default_result)
 }
 
-
-
-pub(crate) fn find_attr(attrs: &Vec<Attribute>,name: &str) -> Option<Meta> {
-    attrs.iter()
-        .find_map(|a| {
-            if let Ok(meta) = a.parse_meta() {
-                if meta.name() == name {
-                    Some(meta)
-                } else {
-                    //println!("attr name: {}",meta.name());
-                    None
-                }
+pub(crate) fn find_attr(attrs: &[Attribute], name: &str) -> Option<Meta> {
+    attrs.iter().find_map(|a| {
+        if let Ok(meta) = a.parse_meta() {
+            if meta.path().is_ident(name) {
+                Some(meta)
             } else {
-                    //println!("unrecog attribute");
+                //println!("attr name: {}",meta.name());
                 None
             }
-    }) 
-}
-
-pub(crate) fn find_name_attribute<'a>(meta: &'a Meta,name: &str) -> Option<&'a MetaNameValue> {
-    find_meta(meta,name).map(|meta| match meta {
-        Meta::NameValue(name_value) => name_value,
-        _ => panic!("should not happen")
+        } else {
+            //println!("unrecog attribute");
+            None
+        }
     })
 }
 
+pub(crate) fn find_name_attribute<'a>(meta: &'a Meta, name: &str) -> Option<&'a MetaNameValue> {
+    find_meta(meta, name).map(|meta| match meta {
+        Meta::NameValue(name_value) => name_value,
+        _ => panic!("should not happen"),
+    })
+}
 
-pub(crate) fn find_meta<'a>(meta: &'a Meta,name: &str) -> Option<&'a Meta> {
-   
-    match meta {
-        Meta::List(list) => {
-            for attr in list.nested.iter() {
-                match attr {
-                    NestedMeta::Meta(named_meta) => {
-                        
-                        match named_meta {
-                            Meta::NameValue(name_value) => {
-                                if name_value.ident == name {
-                                    return Some(named_meta)
-                                }
-                                
-                            }
-                            Meta::Word(word_value) => {
-                                if word_value == name {
-                                    return Some(named_meta)
-                                }
-                                {}
-                            },
-                            Meta::List(_) => {
-                                {}
-                            }
+pub(crate) fn find_meta<'a>(meta: &'a Meta, name: &str) -> Option<&'a Meta> {
+    if let Meta::List(list) = meta {
+        for attr in list.nested.iter() {
+            if let NestedMeta::Meta(named_meta) = attr {
+                match named_meta {
+                    Meta::NameValue(meta_name_value) => {
+                        if meta_name_value.path.is_ident(name) {
+                            return Some(named_meta);
                         }
-
-                    },
-                    _ => {}
+                    }
+                    Meta::Path(path) => {
+                        if path.is_ident(name) {
+                            return Some(named_meta);
+                        }
+                    }
+                    Meta::List(_) => {}
                 }
-                
             }
-
-            {}
-        },
-        _ => {}
+        }
     }
 
     None
-        
 }
-
 
 /// find name value with integer value
-pub(crate) fn find_int_name_value<'a>(version_meta: &'a Meta,attr_name: &str) -> Option<u64> {
-                   
-    if let Some(attr) = find_name_attribute(&version_meta,attr_name) {
-        
+pub(crate) fn find_int_name_value<'a>(version_meta: &'a Meta, attr_name: &str) -> Option<u64> {
+    if let Some(attr) = find_name_attribute(&version_meta, attr_name) {
         match &attr.lit {
-            Lit::Int(version_val) => { 
-              //  println!("version value: {}",version_val.value());
-                Some(version_val.value())
-            },
-            _ => unimplemented!()
+            Lit::Int(version_val) => {
+                //  println!("version value: {}",version_val.value());
+                version_val.base10_parse::<u64>().ok()
+            }
+            _ => unimplemented!(),
         }
     } else {
         None
     }
-
 }
-
 
 /// find name value with str value
-pub(crate) fn find_string_name_value<'a>(version_meta: &'a Meta,attr_name: &str) -> Option<LitStr> {
-                   
-    if let Some(attr) = find_name_attribute(&version_meta,attr_name) {
-        
+pub(crate) fn find_string_name_value<'a>(
+    version_meta: &'a Meta,
+    attr_name: &str,
+) -> Option<LitStr> {
+    if let Some(attr) = find_name_attribute(&version_meta, attr_name) {
         match &attr.lit {
-            Lit::Str(val) => { 
-                Some(val.clone())
-            },
-            _ => unimplemented!()
+            Lit::Str(val) => Some(val.clone()),
+            _ => unimplemented!(),
         }
     } else {
         None
     }
-
 }
-
