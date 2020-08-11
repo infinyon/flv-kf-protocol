@@ -13,6 +13,7 @@ use kf_protocol_derive::Decode;
 // Error Definition & Implementation
 // -----------------------------------
 
+#[fluvio_kf(encode_discriminant)]
 #[repr(i16)]
 #[derive(Encode, Decode, PartialEq, Debug, Clone, Copy, Serialize)]
 pub enum FlvErrorCode {

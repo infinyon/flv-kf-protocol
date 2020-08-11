@@ -88,8 +88,8 @@ fn test_var_encode() {
     let mut src = vec![];
     let result = v1.encode(&mut src, 0);
     assert!(result.is_ok());
-    assert_eq!(src.len(), 7);
-    assert_eq!(v1.write_size(0), 7);
+    assert_eq!(src.len(), 8);
+    assert_eq!(v1.write_size(0), 8);
 }
 
 #[derive(Encode, PartialEq, Decode, Debug)]
@@ -139,7 +139,9 @@ fn test_enum_decode() {
 #[derive(Encode, Decode, PartialEq, Debug)]
 #[repr(u8)]
 pub enum EnumExprTest {
+    #[fluvio_kf(tag = 5)]
     D = 5,
+    #[fluvio_kf(tag = 10)]
     E = 10,
 }
 
@@ -174,7 +176,9 @@ fn test_enum_expr_decode() {
 #[derive(Encode, Decode, PartialEq, Debug)]
 #[repr(u16)]
 pub enum WideEnum {
+    #[fluvio_kf(tag = 5)]
     D = 5,
+    #[fluvio_kf(tag = 10)]
     E = 10,
 }
 
@@ -199,4 +203,35 @@ fn test_try_decode() {
     let val: u16 = 10;
     let e: WideEnum = val.try_into().expect("convert");
     assert_eq!(e, WideEnum::E);
+}
+
+#[derive(Encode, Decode, PartialEq, Debug)]
+pub enum GlColor {
+    #[fluvio_kf(tag = 1)]
+    GlTextureRedType = 0x8C10,
+    #[fluvio_kf(tag = 0)]
+    GlTextureGreenType = 0x8C11,
+    #[fluvio_kf(tag = 2)]
+    GlTextureBlueType = 0x8C12,
+}
+
+impl Default for GlColor {
+    fn default() -> Self {
+        Self::GlTextureRedType
+    }
+}
+
+#[test]
+fn test_gl_colors() {
+    let green = GlColor::GlTextureGreenType;
+    let blue = GlColor::GlTextureBlueType;
+    let mut dest = vec![];
+    let result = green.encode(&mut dest, 0);
+    assert!(result.is_ok());
+    let result = blue.encode(&mut dest, 0);
+    assert!(result.is_ok());
+    assert_eq!(dest.len(), 2);
+    assert_eq!(blue.write_size(0), 1);
+    assert_eq!(dest[0], 0);
+    assert_eq!(dest[1], 2);
 }

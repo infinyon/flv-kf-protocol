@@ -7,6 +7,7 @@ use kf_protocol_derive::Decode;
 use kf_protocol_derive::Encode;
 
 #[derive(Debug, Encode, Serialize, Deserialize, Decode, Clone)]
+#[fluvio_kf(encode_discriminant)]
 #[repr(u8)]
 pub enum Isolation {
     ReadUncommitted = 0,
