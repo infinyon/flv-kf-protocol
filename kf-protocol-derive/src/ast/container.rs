@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use syn::{Attribute, Lit, Meta, NestedMeta};
+use syn::{Attribute, Lit, Meta, NestedMeta, Result};
 
 #[derive(Debug, Default)]
 pub struct ContainerAttributes {
@@ -14,7 +14,7 @@ pub struct ContainerAttributes {
 }
 
 impl ContainerAttributes {
-    pub fn from_ast(attributes: &[Attribute]) -> ContainerAttributes {
+    pub fn from_ast(attributes: &[Attribute]) -> Result<ContainerAttributes> {
         let mut cont_attr = ContainerAttributes::default();
         // Find all supported container level attributes in one go
         for attribute in attributes {
@@ -27,15 +27,15 @@ impl ContainerAttributes {
                             if name_value.path.is_ident("api_min_version") {
                                 if let Lit::Int(lit_int) = &name_value.lit {
                                     cont_attr.api_min_version =
-                                        lit_int.base10_parse::<u16>().unwrap_or_else(|_| 0);
+                                        lit_int.base10_parse::<u16>()?;
                                 }
                             } else if name_value.path.is_ident("api_max_version") {
                                 if let Lit::Int(lit_int) = &name_value.lit {
-                                    cont_attr.api_max_version = lit_int.base10_parse::<u16>().ok();
+                                    cont_attr.api_max_version = Some(lit_int.base10_parse::<u16>()?);
                                 }
                             } else if name_value.path.is_ident("api_key") {
                                 if let Lit::Int(lit_int) = &name_value.lit {
-                                    cont_attr.api_key = lit_int.base10_parse::<u8>().ok();
+                                    cont_attr.api_key = Some(lit_int.base10_parse::<u8>()?);
                                 }
                             } else if name_value.path.is_ident("response") {
                                 if let Lit::Str(lit_str) = &name_value.lit {
@@ -73,6 +73,6 @@ impl ContainerAttributes {
                 }
             }
         }
-        cont_attr
+        Ok(cont_attr)
     }
 }

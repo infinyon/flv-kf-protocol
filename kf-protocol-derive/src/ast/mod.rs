@@ -10,7 +10,6 @@ use crate::ast::container::ContainerAttributes;
 use crate::ast::r#enum::KfEnum;
 use crate::ast::r#struct::KfStruct;
 
-#[derive(Debug)]
 pub(crate) enum DeriveItem {
     Struct(KfStruct, ContainerAttributes),
     Enum(KfEnum, ContainerAttributes),
@@ -18,7 +17,7 @@ pub(crate) enum DeriveItem {
 
 impl Parse for DeriveItem {
     fn parse(input: ParseStream) -> Result<Self> {
-        let attrs = ContainerAttributes::from_ast(&input.call(Attribute::parse_outer)?);
+        let attrs = ContainerAttributes::from_ast(&input.call(Attribute::parse_outer)?)?;
         let _vis = input.parse::<Visibility>()?;
 
         let lookahead = input.lookahead1();

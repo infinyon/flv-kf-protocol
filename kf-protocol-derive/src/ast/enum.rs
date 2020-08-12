@@ -3,7 +3,6 @@ use syn::{
     Variant,
 };
 
-#[derive(Debug)]
 pub(crate) struct KfEnum {
     pub enum_ident: Ident,
     pub props: Vec<EnumProp>,
@@ -13,13 +12,10 @@ pub(crate) struct KfEnum {
 impl KfEnum {
     pub fn from_ast(item: &ItemEnum) -> syn::Result<Self> {
         let enum_ident = item.ident.clone();
-        let props: Vec<EnumProp> = item
-            .variants
-            .iter()
-            .map(|variant| {
-                EnumProp::from_ast(variant).expect("Could not parse enum Variant attribute.")
-            })
-            .collect();
+        let mut props = vec![];
+        for variant in &item.variants {
+            props.push(EnumProp::from_ast(variant)?);
+        }
 
         let generics = item.generics.clone();
 
@@ -31,7 +27,7 @@ impl KfEnum {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct EnumProp {
     pub variant_name: String,
     pub tag: Option<String>,
@@ -80,7 +76,6 @@ impl EnumProp {
     }
 }
 
-#[derive(Debug)]
 pub(crate) enum FieldKind {
     Named(FieldsNamed),
     Unnamed(FieldsUnnamed),

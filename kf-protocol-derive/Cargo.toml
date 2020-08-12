@@ -19,4 +19,4 @@ log = "0.4"
 
 [dependencies.syn]
 version = "1.0.38"
-features = ["full", "extra-traits"]
+features = ["full"]

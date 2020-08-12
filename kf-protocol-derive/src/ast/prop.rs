@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
-use syn::{Field, Lit, Meta, NestedMeta};
+use syn::{Field, Lit, Meta, NestedMeta, Error};
 
 #[derive(Debug, Default)]
 pub(crate) struct Prop {
@@ -22,10 +22,11 @@ pub(crate) struct Prop {
 impl Prop {
     pub fn from_ast(field: &Field) -> syn::Result<Self> {
         let mut prop = Prop::default();
-        let field_ident = field
-            .ident
-            .clone()
-            .expect("Named field must have an ident.");
+        let field_ident = if let Some(ident) = &field.ident {
+            ident.clone()
+        } else {
+            return Err(Error::new(field.span(), "Named field must have an `ident`."));
+        };
         prop.field_name = field_ident.to_string();
         // Find all supported field level attributes in one go.
         for attribute in &field.attrs {
@@ -38,11 +39,11 @@ impl Prop {
                             if name_value.path.is_ident("min_version") {
                                 if let Lit::Int(lit_int) = name_value.lit {
                                     prop.min_version =
-                                        lit_int.base10_parse::<i16>().unwrap_or_else(|_| 0);
+                                        lit_int.base10_parse::<i16>()?;
                                 }
                             } else if name_value.path.is_ident("max_version") {
                                 if let Lit::Int(lit_int) = name_value.lit {
-                                    prop.max_version = lit_int.base10_parse::<i16>().ok();
+                                    prop.max_version = Some(lit_int.base10_parse::<i16>()?);
                                 }
                             } else if name_value.path.is_ident("default") {
                                 if let Lit::Str(lit_str) = name_value.lit {

@@ -235,3 +235,30 @@ fn test_gl_colors() {
     assert_eq!(dest[0], 0);
     assert_eq!(dest[1], 2);
 }
+
+#[fluvio_kf(encode_discriminant)]
+#[derive(Encode, Decode, PartialEq, Debug)]
+enum EvenOdd {
+  Even = 2,
+  Odd = 1,
+} impl Default for EvenOdd {
+    fn default() -> Self {
+        Self::Even
+    }
+}
+
+#[test]
+fn test_encode_discriminant() {
+    let even = EvenOdd::Even;
+    let odd = EvenOdd::Odd;
+    let mut dest = vec![];
+    let result = even.encode(&mut dest, 0);
+    assert!(result.is_ok());
+    let result = odd.encode(&mut dest, 0);
+    assert!(result.is_ok());
+    assert_eq!(dest.len(), 2);
+    assert_eq!(even.write_size(0), 1);
+    assert_eq!(odd.write_size(0), 1);
+    assert_eq!(dest[0], 2);
+    assert_eq!(dest[1], 1);
+}
