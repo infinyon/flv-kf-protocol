@@ -1,176 +1,175 @@
+use crate::ast::{
+    container::ContainerAttributes, prop::Prop, r#enum::EnumProp, r#enum::FieldKind, DeriveItem,
+};
 use proc_macro2::Span;
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::spanned::Spanned;
-use syn::Attribute;
-use syn::Data;
-use syn::DataEnum;
-use syn::DataStruct;
-use syn::DeriveInput;
-use syn::Expr;
-use syn::Fields;
-use syn::Ident;
-use syn::Lit;
-use syn::LitInt;
-use syn::UnOp;
+use quote::{format_ident, quote, ToTokens};
+use std::str::FromStr;
+use syn::{Ident, LitInt};
 
-use super::version::Version;
-use crate::default_int_type;
+pub(crate) fn generate_encode_trait_impls(input: &DeriveItem) -> TokenStream {
+    match &input {
+        DeriveItem::Struct(kf_struct, _attrs) => {
+            let ident = &kf_struct.struct_ident;
+            let (impl_generics, ty_generics, where_clause) = kf_struct.generics.split_for_impl();
+            let encoded_field_tokens = parse_struct_props_encoding(&kf_struct.props, ident);
+            let size_field_tokens = parse_struct_props_size(&kf_struct.props, &ident);
+            quote! {
+                impl #impl_generics kf_protocol::Encoder for #ident #ty_generics #where_clause {
+                    fn encode<T>(&self, dest: &mut T, version: kf_protocol::Version) -> Result<(),std::io::Error> where T: kf_protocol::bytes::BufMut {
+                        log::trace!("encoding struct: {} version: {}",stringify!(#ident),version);
+                        #encoded_field_tokens
+                        Ok(())
+                    }
 
-/// generate implementation for encoding kf protocol
-pub fn generate_encode_traits(input: &DeriveInput) -> TokenStream {
-    let name = &input.ident;
+                    fn write_size(&self, version: kf_protocol::Version) -> usize {
+                        log::trace!("write size for struct: {} version {}",stringify!(#ident),version);
+                        let mut len: usize = 0;
+                        #size_field_tokens
+                        len
+                    }
+                }
+            }
+        }
+        DeriveItem::Enum(kf_enum, attrs) => {
+            let ident = &kf_enum.enum_ident;
+            let (impl_generics, ty_generics, where_clause) = kf_enum.generics.split_for_impl();
+            let encoded_variant_tokens = parse_enum_variants_encoding(&kf_enum.props, ident, attrs);
+            let size_variant_tokens = parse_enum_variants_size(&kf_enum.props, ident, attrs);
+            quote! {
+                impl #impl_generics kf_protocol::Encoder for #ident #ty_generics #where_clause {
+                    fn encode<T>(&self, dest: &mut T, version: kf_protocol::Version) -> Result<(),std::io::Error> where T: kf_protocol::bytes::BufMut {
+                        log::trace!("encoding struct: {} version: {}",stringify!(#ident),version);
+                        #encoded_variant_tokens
+                        Ok(())
+                    }
 
-    let encoded_field_tokens = encode_fields_for_writing(&input.data, &input.attrs, name);
-    let size_field_tokens = encode_field_sizes(&input.data, &input.attrs, name);
-    let generics = &input.generics;
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    fn write_size(&self, version: kf_protocol::Version) -> usize {
+                        log::trace!("write size for struct: {} version {}",stringify!(#ident),version);
+                        #size_variant_tokens
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn parse_struct_props_encoding(props: &[Prop], struct_ident: &Ident) -> TokenStream {
+    let recurse = props.iter().map(|prop| {
+        let fname = format_ident!("{}", prop.field_name);
+
+        if prop.varint {
+            quote! {
+                log::trace!("encoding varint struct: <{}> field <{}> => {:?}",stringify!(#struct_ident),stringify!(#fname),&self.#fname);
+                let result = self.#fname.encode_varint(dest);
+                if result.is_err() {
+                    log::error!("error varint encoding <{}> ==> {}",stringify!(#fname),result.as_ref().unwrap_err());
+                    return result;
+                }
+            }
+        } else {
+            let base = quote! {
+                log::trace!("encoding struct: <{}>, field <{}> => {:?}",stringify!(#struct_ident),stringify!(#fname),&self.#fname);
+                let result = self.#fname.encode(dest,version);
+                if result.is_err() {
+                    log::error!("Error Encoding <{}> ==> {}",stringify!(#fname),result.as_ref().unwrap_err());
+                    return result;
+                }
+            };
+
+            prop.version_check_token_stream(base)
+        }
+    });
 
     quote! {
-
-        impl #impl_generics kf_protocol::Encoder for #name #ty_generics #where_clause {
-
-            fn encode<T>(&self, src: &mut T, version: kf_protocol::Version) -> Result<(),std::io::Error> where T: kf_protocol::bytes::BufMut {
-                log::trace!("encoding struct: {} version: {}",stringify!(#name),version);
-                #encoded_field_tokens
-                Ok(())
-            }
-
-            fn write_size(&self, version: kf_protocol::Version) -> usize {
-                log::trace!("write size for struct: {} version {}",stringify!(#name),version);
-                let mut len: usize = 0;
-                #size_field_tokens
-                len
-            }
-
-        }
+        #(#recurse)*
     }
 }
 
-/// generate syntax for encoding
-fn encode_fields_for_writing(data: &Data, attrs: &[Attribute], name: &Ident) -> TokenStream {
-    match *data {
-        Data::Struct(ref struct_data) => parse_structf_encoding(name, struct_data),
-        Data::Enum(ref enum_data) => parse_enum_for_writing(enum_data, attrs, name),
-        _ => unimplemented!(),
-    }
-}
-
-fn parse_structf_encoding(struct_name: &Ident, data: &DataStruct) -> TokenStream {
-    match data.fields {
-        Fields::Named(ref fields) => {
-            let recurse = fields.named.iter().map(|f| {
-                let fname = &f.ident;
-
-                if f.attrs.iter().flat_map(Attribute::parse_meta).any(|meta| meta.path().is_ident("varint")) {
-                    quote! {
-                        log::trace!("encoding varint struct: <{}> field <{}> => {:?}",stringify!(#struct_name),stringify!(#fname),&self.#fname);
-                        let result = self.#fname.encode_varint(src);
-                        if result.is_err() {
-                            log::error!("error varint encoding <{}> ==> {}",stringify!(#fname),result.as_ref().unwrap_err());
-                            return result;
-                        }
-                    }
-                } else {
-                    let base = quote! {
-                        log::trace!("encoding struct: <{}>, field <{}> => {:?}",stringify!(#struct_name),stringify!(#fname),&self.#fname);
-                        let result = self.#fname.encode(src,version);
-                        if result.is_err() {
-                            log::error!("Error Encoding <{}> ==> {}",stringify!(#fname),result.as_ref().unwrap_err());
-                            return result;
-                        }
-                    };
-
-                    if let Some(version) = Version::find_version(&f.attrs) {
-                        if let Some(msg) = version.validation_msg() {
-                            syn::Error::new(f.span(),msg).to_compile_error()
-                        } else {
-                            match fname {
-                                Some(field_name) => version.expr(base,field_name),
-                                None => base
-                            }
-                        }
-                    } else {
-                        base
-                    }
-                }
-            });
-
+fn parse_struct_props_size(props: &[Prop], struct_ident: &Ident) -> TokenStream {
+    let recurse = props.iter().map(|prop| {
+        let fname = format_ident!("{}", prop.field_name);
+        if prop.varint {
             quote! {
-                #(#recurse)*
+                let write_size = self.#fname.var_write_size();
+                log::trace!("varint write size: <{}>, field: <{}> is: {}",stringify!(#struct_ident),stringify!(#fname),write_size);
+                len = len + write_size;
             }
+        } else {
+            let base = quote! {
+                let write_size = self.#fname.write_size(version);
+                log::trace!("write size: <{}> field: <{}> => {}",stringify!(#struct_ident),stringify!(#fname),write_size);
+                len = len + write_size;
+            };
+            prop.version_check_token_stream(base)
         }
-        _ => unimplemented!(),
+    });
+    quote! {
+        #(#recurse)*
     }
 }
 
-fn parse_enum_for_writing(data: &DataEnum, attrs: &[Attribute], name: &Ident) -> TokenStream {
-    // find repr sentation
-    let int_type = default_int_type(attrs);
+fn parse_enum_variants_encoding(
+    props: &[EnumProp],
+    enum_ident: &Ident,
+    attrs: &ContainerAttributes,
+) -> TokenStream {
+    let int_type = if let Some(int_type_name) = &attrs.repr_type_name {
+        format_ident!("{}", int_type_name)
+    } else {
+        Ident::new("u8", Span::call_site())
+    };
     let mut variant_expr = vec![];
-    for (idx, variant) in data.variants.iter().enumerate() {
-        let id = &variant.ident;
-        //print!("id: {} => ",id);
 
-        match &variant.fields {
-            Fields::Unit => {
-                //  print!("unit = ");
-                if let Some(expr) = &variant.discriminant {
-                    let expr = match &expr.1 {
-                        Expr::Lit(lit) => match &lit.lit {
-                            Lit::Int(int_lit) => quote! {
-                                #name::#id => {
-                                    // i16 form i32?
-                                    let val = #int_lit as #int_type;
-                                    val.encode(src,version)?;
-                                }
-                            },
-                            _ => quote! {
-                                compile_error!("unsupported")
-                            },
-                        },
-                        Expr::Unary(t) => match t.op {
-                            UnOp::Neg(_) => quote! {
-                                #name::#id => {
-                                    let val = #t as #int_type;
-                                    val.encode(src,version)?;
-                                }
-                            },
-                            _ => quote! {
-                                compile_error!("unsupported")
-                            },
-                        },
-                        _ => quote! {
-                            compile_error!("unsupported")
-                        },
-                    };
-                    variant_expr.push(expr);
+    for (idx, prop) in props.iter().enumerate() {
+        let id = &format_ident!("{}", prop.variant_name);
+        // #[cfg(feature = "discriminant_panic")] {
+        //     if prop.discriminant.is_some() && prop.tag.is_none() && !attrs.encode_discriminant {
+        //         compiler_error!("feature[discriminant_panic]: either #[fluvio_kf(encode_discriminant)] or #[fluvio_kf(tag = ..)] is required on enum: {}", stringify!(#enum_ident));
+        //     }
+        // }
+        let field_idx = if let Some(tag) = &prop.tag {
+            if let Ok(literal) = TokenStream::from_str(tag) {
+                literal
+            } else {
+                LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
+            }
+        } else if attrs.encode_discriminant {
+            if let Some(dsc) = &prop.discriminant {
+                if let Ok(literal) = TokenStream::from_str(dsc) {
+                    literal
                 } else {
-                    let idx_val = LitInt::new(&idx.to_string(), Span::call_site());
-                    variant_expr.push(quote! {
-                        #name::#id => {
-                            let val = #idx_val as #int_type;
-                            val.encode(src,version)?;
-                        },
-                    });
+                    LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
                 }
-                //
+            } else {
+                LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
             }
-            Fields::Named(_named_fields) => {
-                variant_expr.push(quote! {
-                    compiler_error!("named fields are not supported");
-                });
+        } else {
+            LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
+        };
+        let variant_code = match &prop.kind {
+            FieldKind::Named(_expr) => {
+                quote! { compiler_error!("named fields are not supported"); }
             }
-            Fields::Unnamed(_) => {
-                // println!("unamed");
-
-                variant_expr.push(quote! {
-                    #name::#id(val) => val.encode(src,version)?,
-                });
+            FieldKind::Unnamed(_expr) => {
+                // TODO: handle cases like #enum_ident::#id(val1, val2, val3)
+                quote! {
+                    #enum_ident::#id(response) => {
+                        let typ = #field_idx as #int_type;
+                        typ.encode(dest,version)?;
+                        response.encode(dest, version)?;
+                    },
+                }
             }
-        }
+            _ => quote! {
+                #enum_ident::#id => {
+                    let typ = #field_idx as #int_type;
+                    typ.encode(dest,version)?;
+                },
+            },
+        };
+        variant_expr.push(variant_code);
     }
-
     quote! {
         match self {
             #(#variant_expr)*
@@ -178,81 +177,36 @@ fn parse_enum_for_writing(data: &DataEnum, attrs: &[Attribute], name: &Ident) ->
     }
 }
 
-/// generate syntax for encoding
-fn encode_field_sizes(data: &Data, attrs: &[Attribute], name: &Ident) -> TokenStream {
-    match *data {
-        Data::Struct(ref struct_data) => parse_structf_size(name, struct_data),
-        Data::Enum(ref enum_data) => parse_enum_for_size(enum_data, attrs, name),
-        _ => unimplemented!(),
-    }
-}
+fn parse_enum_variants_size(
+    props: &[EnumProp],
+    enum_ident: &Ident,
+    attrs: &ContainerAttributes,
+) -> TokenStream {
+    let int_type = if let Some(int_type_name) = &attrs.repr_type_name {
+        format_ident!("{}", int_type_name)
+    } else {
+        Ident::new("u8", Span::call_site())
+    };
+    let mut variant_expr: Vec<TokenStream> = vec![];
 
-fn parse_structf_size(struct_name: &Ident, data: &DataStruct) -> TokenStream {
-    match data.fields {
-        Fields::Named(ref fields) => {
-            let recurse = fields.named.iter().map(|f| {
-                let fname = &f.ident;
-                if f.attrs.iter().flat_map(Attribute::parse_meta).any(|meta| meta.path().is_ident("varint")) {
-                    quote! {
-                        let write_size = self.#fname.var_write_size();
-                        log::trace!("varint write size: <{}>, field: <{}> is: {}",stringify!(#struct_name),stringify!(#fname),write_size);
-                        len = len + write_size;
-                    }
-                } else {
-                    let base = quote! {
-                        let write_size = self.#fname.write_size(version);
-                        log::trace!("write size: <{}> field: <{}> => {}",stringify!(#struct_name),stringify!(#fname),write_size);
-                        len = len + write_size;
-                    };
-
-                    if let Some(version) = Version::find_version(&f.attrs) {
-                        if let Some(msg) = version.validation_msg() {
-                            syn::Error::new(f.span(),msg).to_compile_error()
-                        } else {
-                            match fname {
-                                Some(field_name) => version.expr(base,field_name),
-                                None => base
-                            }
-                        }
-                    } else {
-                        base
-                    }
-                }
-            });
-
-            quote! {
-                #(#recurse)*
-            }
-        }
-        _ => unimplemented!(),
-    }
-}
-
-fn parse_enum_for_size(data: &DataEnum, attrs: &[Attribute], name: &Ident) -> TokenStream {
-    let int_type = default_int_type(attrs);
-
-    let mut variant_expr = vec![];
-
-    for (_, variant) in data.variants.iter().enumerate() {
-        let id = &variant.ident;
-        // print!("id: {} => ",id);
-
-        if let Fields::Unnamed(_) = &variant.fields {
+    for prop in props {
+        let id = &format_ident!("{}", prop.variant_name);
+        if let FieldKind::Unnamed(_) = &prop.kind {
             variant_expr.push(quote! {
-                #name::#id(val) => val.write_size(version),
+                #enum_ident::#id(response) => { response.write_size(version) + std::mem::size_of::<#int_type>() },
             });
         }
     }
 
     if variant_expr.is_empty() {
         quote! {
-            len = std::mem::size_of::<#int_type>();
+            std::mem::size_of::<#int_type>()
         }
     } else {
         quote! {
-            len = match self {
+            match self {
                 #(#variant_expr)*
-            };
+            }
         }
     }
 }

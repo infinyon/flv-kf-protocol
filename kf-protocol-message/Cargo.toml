@@ -14,7 +14,7 @@ log = "0.4.8"
 content_inspector = "0.2.4"
 serde = { version ="1.0.103", features = ['derive'] }
 paste = "0.1.5"
-kf-protocol-derive = { version = "0.1.0", path = "../kf-protocol-derive" }
+kf-protocol-derive = { version = "0.2.0", path = "../kf-protocol-derive" }
 kf-protocol = { version = "0.1.0", path = "../kf-protocol-core", package = "kf-protocol-core" }
 kf-protocol-api = { version = "1.0.0", path = "../kf-protocol-api"}
 flv-util = { version = "0.2.0" }

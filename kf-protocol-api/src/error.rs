@@ -7,6 +7,8 @@ use kf_protocol_derive::Encode;
 /// kafka error
 /// https://kafka.apache.org/protocol#protocol_types
 
+#[fluvio_kf(encode_discriminant)]
+#[fluvio_kf(default)]
 #[repr(i16)]
 #[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize, Encode, Decode)]
 pub enum ErrorCode {

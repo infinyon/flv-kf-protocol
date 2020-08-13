@@ -1,17 +1,16 @@
 extern crate proc_macro;
 
 mod api;
+mod ast;
 mod de;
 mod ser;
 mod util;
-mod version;
 
 use self::api::generate_request_traits;
 use self::api::parse_and_generate_api;
-use self::de::generate_decode_traits;
-use self::de::generate_default_traits;
-use self::ser::generate_encode_traits;
-pub(crate) use self::util::default_int_type;
+use self::de::generate_decode_trait_impls;
+use self::de::generate_default_trait_impls;
+use self::ser::generate_encode_trait_impls;
 
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
@@ -40,8 +39,8 @@ use syn::parse_macro_input;
 /// ```
 ///
 ///
-/// Decode applys to either Struct of Enum.  For enum, it implements `TryFrom` trait.  
-/// Currenly it only supports integer variants.  
+/// Decode applies to either Struct of Enum.  For enum, it implements `TryFrom` trait.  
+/// Currently it only supports integer variants.  
 ///
 /// So this works
 ///
@@ -70,17 +69,17 @@ use syn::parse_macro_input;
 ///
 ///
 /// Decode support container and field level attributes.
-/// Container level applys to struct.
+/// Container level applies to struct.
 /// For field attributes
 /// * `#[varint]` force decode using varint format.
 /// * `#fluvio_kf(min_version = <version>)]` decodes only if version is equal or greater than min_version
-/// * `#fluvio_kf(max_version = <version>)]`decodes only if version is less or greater than max_version
-///
+/// * `#fluvio_kf(max_version = <version>)]`decodes only if version is less or equal than max_version
 ///
 #[proc_macro_derive(Decode, attributes(varint, fluvio_kf))]
 pub fn kf_decode(tokens: TokenStream) -> TokenStream {
-    let inputs = parse_macro_input![tokens as syn::DeriveInput];
-    let expanded = generate_decode_traits(&inputs);
+    let input = parse_macro_input![tokens as ast::DeriveItem];
+    let expanded = generate_decode_trait_impls(&input);
+
     expanded.into()
 }
 
@@ -117,9 +116,9 @@ pub fn kf_decode(tokens: TokenStream) -> TokenStream {
 ///
 #[proc_macro_derive(Encode, attributes(varint, fluvio_kf))]
 pub fn kf_encode(tokens: TokenStream) -> TokenStream {
-    let inputs = parse_macro_input![tokens as syn::DeriveInput];
+    let input = parse_macro_input![tokens as ast::DeriveItem];
+    let expanded = generate_encode_trait_impls(&input);
 
-    let expanded = generate_encode_traits(&inputs);
     expanded.into()
 }
 
@@ -131,7 +130,7 @@ pub fn kf_api(tokens: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-/// Custom derive for implementating Request trait.
+/// Custom derive for implementing Request trait.
 /// This derives requires `fluvio_kf`
 ///
 /// # Examples
@@ -192,8 +191,8 @@ pub fn kf_request(tokens: TokenStream) -> TokenStream {
 /// `default` assignment can be any Rust expression.
 #[proc_macro_derive(KfDefault, attributes(fluvio_kf))]
 pub fn kf_default(tokens: TokenStream) -> TokenStream {
-    let inputs = parse_macro_input![tokens as syn::DeriveInput];
+    let input = parse_macro_input![tokens as ast::DeriveItem];
+    let expanded = generate_default_trait_impls(&input);
 
-    let expanded = generate_default_traits(&inputs);
     expanded.into()
 }

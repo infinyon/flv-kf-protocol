@@ -1,6 +1,7 @@
 use kf_protocol_derive::Encode;
 use kf_protocol_derive::Decode;
 
+#[fluvio_kf(encode_discriminant)]
 #[derive(PartialEq, Debug, Clone, Copy, Encode, Decode)]
 #[repr(u16)]
 pub enum AllKfApiKey {

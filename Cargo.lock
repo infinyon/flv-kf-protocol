@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-derive"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "log",
  "proc-macro2 1.0.19",

@@ -1,30 +1,4 @@
-use proc_macro2::Span;
-use syn::Attribute;
-use syn::Ident;
-use syn::Lit;
-use syn::LitStr;
-use syn::Meta;
-use syn::MetaNameValue;
-use syn::NestedMeta;
-
-/// find type using rep, if not found return u8
-pub(crate) fn default_int_type(attrs: &[Attribute]) -> Ident {
-    let mut rep_result: Option<Ident> = None;
-    let default_result = Ident::new("u8", Span::call_site());
-    for attr in attrs {
-        if let Meta::List(meta_list) = attr.parse_meta().expect("meta") {
-            for attr_meta in meta_list.nested.iter() {
-                if let NestedMeta::Meta(Meta::Path(path)) = attr_meta {
-                    if rep_result.is_none() {
-                        rep_result = path.get_ident().cloned();
-                    }
-                }
-            }
-        }
-    }
-
-    rep_result.unwrap_or_else(|| default_result)
-}
+use syn::{Attribute, Lit, LitStr, Meta, MetaNameValue, NestedMeta};
 
 pub(crate) fn find_attr(attrs: &[Attribute], name: &str) -> Option<Meta> {
     attrs.iter().find_map(|a| {
