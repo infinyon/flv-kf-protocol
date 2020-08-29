@@ -5,13 +5,13 @@ use std::io::ErrorKind;
 use std::io::Read;
 use std::marker::PhantomData;
 
+use bytes::buf::ext::BufExt;
 use bytes::Buf;
 use bytes::BufMut;
-use bytes::buf::ext::BufExt;
 use log::trace;
 
-use crate::Version;
 use super::varint::varint_decode;
+use crate::Version;
 
 // trait for encoding and decoding using Kafka Protocol
 pub trait Decoder: Sized + Default {
@@ -41,7 +41,7 @@ impl<M> Decoder for Vec<M>
 where
     M: Default + Decoder,
 {
-    default fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
+    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
@@ -75,37 +75,11 @@ where
     Ok(())
 }
 
-impl<M> Decoder for Option<Vec<M>>
-where
-    M: Default + Decoder,
-{
-    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
-    where
-        T: Buf,
-    {
-        let mut len: i32 = 0;
-        len.decode(src, version)?;
-
-        trace!("decoding Vec len:{}", len);
-
-        if len < 0 {
-            *self = None;
-            return Ok(());
-        }
-
-        let mut item: Vec<M> = vec![];
-
-        decode_vec(len, &mut item, src, version)?;
-        *self = Some(item);
-        Ok(())
-    }
-}
-
 impl<M> Decoder for Option<M>
 where
     M: Default + Decoder,
 {
-    default fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
+    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
@@ -126,7 +100,7 @@ impl<M> Decoder for PhantomData<M>
 where
     M: Default + Decoder,
 {
-    default fn decode<T>(&mut self, _src: &mut T, _version: Version) -> Result<(), Error>
+    fn decode<T>(&mut self, _src: &mut T, _version: Version) -> Result<(), Error>
     where
         T: Buf,
     {
@@ -247,35 +221,6 @@ impl Decoder for u16 {
     }
 }
 
-impl Decoder for Option<u16> {
-    fn decode<T>(&mut self, src: &mut T, _version: Version) -> Result<(), Error>
-    where
-        T: Buf,
-    {
-        if src.remaining() < 1 {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                "can't read option flag for u16",
-            ));
-        }
-        let some_or_none = src.get_i8();
-        if some_or_none == 0 {
-            *self = None;
-            return Ok(());
-        }
-
-        if src.remaining() < 2 {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                "can't read Option<u16>",
-            ));
-        }
-        let value = src.get_u16();
-        *self = Some(value);
-        Ok(())
-    }
-}
-
 impl Decoder for i32 {
     fn decode<T>(&mut self, src: &mut T, _version: Version) -> Result<(), Error>
     where
@@ -332,28 +277,6 @@ impl DecoderVarInt for i64 {
     }
 }
 
-impl Decoder for Option<String> {
-    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
-    where
-        T: Buf,
-    {
-        let mut len: i16 = 0;
-        len.decode(src, version)?;
-        if len < 0 {
-            *self = None;
-            return Ok(());
-        }
-
-        if len == 0 {
-            *self = Some(String::default());
-        }
-
-        let value = decode_string(len, src)?;
-        *self = Some(value);
-        Ok(())
-    }
-}
-
 fn decode_string<T>(len: i16, src: &mut T) -> Result<String, Error>
 where
     T: Buf,
@@ -385,42 +308,6 @@ impl Decoder for String {
 
         let value = decode_string(len, src)?;
         *self = value;
-        Ok(())
-    }
-}
-
-impl Decoder for Vec<u8> {
-    fn decode<T>(&mut self, src: &mut T, version: Version) -> Result<(), Error>
-    where
-        T: Buf,
-    {
-        let mut len: i32 = 0;
-        len.decode(src, version)?;
-
-        trace!("decoding Vec len:{}", len);
-
-        if len < 0 {
-            trace!("negative length, treat as empty values");
-            return Ok(());
-        }
-
-        if src.remaining() < len as usize {
-            return Err(Error::new(ErrorKind::UnexpectedEof, "not enought bytes"));
-        }
-
-        let mut buf = src.take(len as usize);
-        self.put(&mut buf);
-        if self.len() != len as usize {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                format!(
-                    "varint: Vec<u8>>, expecting {} but received: {}",
-                    len,
-                    self.len()
-                ),
-            ));
-        }
-
         Ok(())
     }
 }
@@ -671,7 +558,7 @@ mod test {
 
     #[test]
     fn test_decode_null_option_string() {
-        let data = [0xff, 0xff]; // len and string doesn't match
+        let data = [0x00]; // len and string doesn't match
 
         let mut value: Option<String> = Some(String::from("test"));
         let result = value.decode(&mut Cursor::new(&data), 0);
@@ -681,7 +568,7 @@ mod test {
 
     #[test]
     fn test_decode_some_option_string() {
-        let data = [0x00, 0x02, 0x77, 0x6f]; // len and string doesn't match
+        let data = [0x01, 0x00, 0x02, 0x77, 0x6f]; // len and string doesn't match
 
         let mut value: Option<String> = None;
         let result = value.decode(&mut Cursor::new(&data), 0);

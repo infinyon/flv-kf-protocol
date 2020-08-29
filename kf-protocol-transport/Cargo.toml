@@ -13,7 +13,7 @@ log = "0.4.8"
 bytes = "0.5.3"
 tokio-util = { version = "0.3.1", features = ["codec","compat"]}
 flv-future-aio = { version = "2.1.0" }
-kf-protocol = { version = "0.1.0", path = "../kf-protocol-core", package = "kf-protocol-core" }
+kf-protocol = { version = "0.2.0", path = "../kf-protocol-core", package = "kf-protocol-core" }
 
 [dev-dependencies]
 flv-future-aio = { version = "2.1.0", features = ["fixture"] }

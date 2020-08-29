@@ -1,14 +1,14 @@
 // decode values
+use std::collections::BTreeMap;
 use std::io::Error;
 use std::io::ErrorKind;
 use std::io::Write;
-use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
-use bytes::BufMut;
-use bytes::BytesMut;
-use bytes::Bytes;
 use bytes::buf::ext::BufMutExt;
+use bytes::BufMut;
+use bytes::Bytes;
+use bytes::BytesMut;
 use log::trace;
 
 use crate::Version;
@@ -79,14 +79,14 @@ impl<M> Encoder for Option<M>
 where
     M: Encoder,
 {
-    default fn write_size(&self, version: Version) -> usize {
+    fn write_size(&self, version: Version) -> usize {
         match *self {
             Some(ref value) => true.write_size(version) + value.write_size(version),
             None => false.write_size(version),
         }
     }
 
-    default fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
+    fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
     where
         T: BufMut,
     {
@@ -113,33 +113,6 @@ where
         T: BufMut,
     {
         Ok(())
-    }
-}
-
-impl<M> Encoder for Option<Vec<M>>
-where
-    M: Encoder,
-{
-    fn write_size(&self, version: Version) -> usize {
-        match self {
-            Some(inner) => inner.write_size(version),
-            None => 4,
-        }
-    }
-
-    fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
-    where
-        T: BufMut,
-    {
-        if self.is_none() {
-            let len: i32 = -1;
-            len.encode(dest, version)?;
-            trace!("Option<Vec>: None encode as: {:X?}", -1 as i32);
-            return Ok(());
-        }
-
-        let inner = self.as_ref().unwrap();
-        inner.encode(dest, version)
     }
 }
 
@@ -281,44 +254,6 @@ impl Encoder for u16 {
     }
 }
 
-impl Encoder for Option<u16> {
-    fn write_size(&self, _version: Version) -> usize {
-        if self.is_none() {
-            return 1;
-        } else {
-            3
-        }
-    }
-
-    fn encode<T>(&self, dest: &mut T, _version: Version) -> Result<(), Error>
-    where
-        T: BufMut,
-    {
-        if dest.remaining_mut() < 1 {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                "not enough capacity for len of 1",
-            ));
-        }
-        if self.is_none() {
-            dest.put_i8(0);
-            return Ok(());
-        }
-
-        dest.put_i8(1);
-        if dest.remaining_mut() < 2 {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                "not enough capacity for u16",
-            ));
-        }
-        let u16_value = self.as_ref().unwrap();
-        dest.put_u16(*u16_value);
-
-        Ok(())
-    }
-}
-
 impl Encoder for i32 {
     fn write_size(&self, _version: Version) -> usize {
         4
@@ -391,32 +326,6 @@ impl EncoderVarInt for i64 {
     {
         variant_encode(dest, *self)?;
         Ok(())
-    }
-}
-
-impl Encoder for Option<String> {
-    fn write_size(&self, _version: Version) -> usize {
-        if self.is_none() {
-            2
-        } else {
-            2 + self.as_ref().unwrap().len()
-        }
-    }
-
-    fn encode<T>(&self, dest: &mut T, version: Version) -> Result<(), Error>
-    where
-        T: BufMut,
-    {
-        if self.is_none() {
-            let len: i16 = -1;
-            len.encode(dest, version)?;
-            trace!("Option<String>: None encode as: {:X?}", -1 as i16);
-            return Ok(());
-        }
-
-        let str_value = self.as_ref().unwrap();
-
-        str_value.encode(dest, version)
     }
 }
 
@@ -531,8 +440,6 @@ mod test {
         assert_eq!(value.write_size(0), 1);
     }
 
-
-
     #[test]
     fn test_encode_i16() {
         let mut dest = vec![];
@@ -610,10 +517,9 @@ mod test {
         let value: Option<String> = None;
         let result = value.encode(&mut dest, 0);
         assert!(result.is_ok());
-        assert_eq!(dest.len(), 2);
-        assert_eq!(dest[0], 0xff);
-        assert_eq!(dest[1], 0xff);
-        assert_eq!(value.write_size(0), 2);
+        assert_eq!(dest.len(), 1);
+        assert_eq!(dest[0], 0x00);
+        assert_eq!(value.write_size(0), 1);
     }
 
     #[test]
@@ -622,12 +528,13 @@ mod test {
         let value: Option<String> = Some(String::from("wo"));
         let result = value.encode(&mut dest, 0);
         assert!(result.is_ok());
-        assert_eq!(dest.len(), 4);
-        assert_eq!(dest[0], 0x00);
-        assert_eq!(dest[1], 0x02);
-        assert_eq!(dest[2], 0x77);
-        assert_eq!(dest[3], 0x6f);
-        assert_eq!(value.write_size(0), 4);
+        assert_eq!(dest.len(), 5);
+        assert_eq!(dest[0], 0x01);
+        assert_eq!(dest[1], 0x00);
+        assert_eq!(dest[2], 0x02);
+        assert_eq!(dest[3], 0x77);
+        assert_eq!(dest[4], 0x6f);
+        assert_eq!(value.write_size(0), 5);
     }
 
     #[test]

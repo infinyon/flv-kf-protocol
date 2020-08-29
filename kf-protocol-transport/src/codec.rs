@@ -186,7 +186,7 @@ mod test {
                     let mut bytes = value.expect("bytes");
                     debug!("client: received bytes len: {}", bytes.len());
                     assert_eq!(bytes.len(), 9, "total bytes is 9");
-                    let mut decoded_values = vec![];
+                    let mut decoded_values: Vec<u8> = vec![];
                     decoded_values
                         .decode(&mut bytes, 0)
                         .expect("vector decoding failed");

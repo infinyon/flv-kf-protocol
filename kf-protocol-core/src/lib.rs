@@ -1,5 +1,3 @@
-#![feature(specialization)]
-
 mod decoder;
 mod encoder;
 mod varint;
