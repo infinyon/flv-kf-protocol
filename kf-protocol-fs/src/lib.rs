@@ -1,6 +1,3 @@
-#![feature(generators)]
-
-
 mod file_fetch;
 mod file_produce;
 
