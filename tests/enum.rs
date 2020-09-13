@@ -265,6 +265,7 @@ fn test_encode_discriminant() {
 
 
 #[derive(Encode, Decode, PartialEq, Debug)]
+#[repr(u16)]
 enum SimpleEnum {
   Even = 2,
   Odd = 1,
