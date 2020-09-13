@@ -433,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol"
-version = "2.0.4"
+version = "3.0.0"
 dependencies = [
  "flv-util",
  "kf-protocol-api",

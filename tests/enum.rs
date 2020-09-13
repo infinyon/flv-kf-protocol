@@ -264,30 +264,24 @@ fn test_encode_discriminant() {
 }
 
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[fluvio_kf(encode_discriminant)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
 #[repr(u16)]
-enum SimpleEnum {
-  Even = 2,
-  Odd = 1,
-} 
-
-impl Default for SimpleEnum {
+pub enum TestWideEnum {
+    Echo = 1000,
+    Status = 1001,
+}
+impl Default for TestWideEnum {
     fn default() -> Self {
-        Self::Even
+        Self::Echo
     }
 }
 
 
 #[test]
-fn test_simple_enum() {
-    use std::convert::TryInto;
+fn test_simple_conversion() {
+    let key: u16 =  1000;
+    let key_enum: TestWideEnum = key.try_into().expect("conversion");
+    assert_eq!(key_enum,TestWideEnum::Echo);
 
-    let odd = SimpleEnum::Odd;
-    let mut dest = vec![];
-    odd.encode(&mut dest, 0).expect("encode");
-    odd.encode(&mut dest, 0).expect("decode");
-    assert_eq!(odd,SimpleEnum::Odd);
-
-    let odd2: SimpleEnum = 1.try_into().expect("conversion");
-    assert_eq!(odd2,SimpleEnum::Odd);
 }
