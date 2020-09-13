@@ -262,3 +262,31 @@ fn test_encode_discriminant() {
     assert_eq!(dest[0], 2);
     assert_eq!(dest[1], 1);
 }
+
+
+#[derive(Encode, Decode, PartialEq, Debug)]
+enum SimpleEnum {
+  Even = 2,
+  Odd = 1,
+} 
+
+impl Default for SimpleEnum {
+    fn default() -> Self {
+        Self::Even
+    }
+}
+
+
+#[test]
+fn test_simple_enum() {
+    use std::convert::TryInto;
+
+    let odd = SimpleEnum::Odd;
+    let mut dest = vec![];
+    odd.encode(&mut dest, 0).expect("encode");
+    odd.encode(&mut dest, 0).expect("decode");
+    assert_eq!(odd,SimpleEnum::Odd);
+
+    let odd2: SimpleEnum = 1.try_into().expect("conversion");
+    assert_eq!(odd2,SimpleEnum::Odd);
+}
