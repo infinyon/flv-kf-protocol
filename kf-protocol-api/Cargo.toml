@@ -1,7 +1,7 @@
 [package]
 name = "kf-protocol-api"
 edition = "2018"
-version = "2.0.0"
+version = "3.0.0"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Rust kafka protocol API definitions"
 repository = "https://github.com/infinyon/flv-kf-protocol"

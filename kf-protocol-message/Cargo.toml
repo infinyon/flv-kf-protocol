@@ -1,7 +1,7 @@
 [package]
 name = "kf-protocol-message"
 edition = "2018"
-version = "2.0.0"
+version = "3.0.0"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Rust kafka protocol message definition"
 repository = "https://github.com/infinyon/flv-kf-protocol"
@@ -16,7 +16,7 @@ serde = { version ="1.0.103", features = ['derive'] }
 paste = "0.1.5"
 kf-protocol-derive = { version = "0.2.0", path = "../kf-protocol-derive" }
 kf-protocol = { version = "0.2.0", path = "../kf-protocol-core", package = "kf-protocol-core" }
-kf-protocol-api = { version = "2.0.0", path = "../kf-protocol-api"}
+kf-protocol-api = { version = "3.0.0", path = "../kf-protocol-api"}
 flv-util = { version = "0.4.0" }
 
 #[build-dependencies]

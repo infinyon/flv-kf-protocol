@@ -433,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol"
-version = "3.0.0"
+version = "4.0.0"
 dependencies = [
  "flv-util",
  "kf-protocol-api",
@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-api"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "content_inspector",
  "crc32c",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-fs"
-version = "3.0.0"
+version = "4.0.0"
 dependencies = [
  "bytes",
  "flv-future-aio",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-message"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "content_inspector",
  "flv-util",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "kf-protocol-transport"
-version = "2.0.4"
+version = "3.0.4"
 dependencies = [
  "bytes",
  "flv-future-aio",

@@ -1,7 +1,7 @@
 [package]
 name = "kf-protocol-transport"
 edition = "2018"
-version = "2.0.4"
+version = "3.0.4"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Transport frame encoder and decoder for Kakfa protocol"
 repository = "https://github.com/infinyon/flv-kf-protocol"
