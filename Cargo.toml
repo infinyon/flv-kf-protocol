@@ -1,7 +1,7 @@
 [package]
 name = "kf-protocol"
 edition = "2018"
-version = "2.0.3"
+version = "3.0.0"
 authors = ["Fluvio Contributors <team@fluvio.io>"]
 description = "Native Rust implementation of kafka protocol"
 repository = "https://github.com/infinyon/flv-kf-protocol"
@@ -11,11 +11,11 @@ categories = ["encoding","api-bindings"]
 [dependencies]
 log = "0.4.8"
 kf-protocol-core = { version = "0.1.0", path = "kf-protocol-core" }
-kf-protocol-api = { version = "1.0.1", path = "kf-protocol-api"}
+kf-protocol-api = { version = "2.0.0", path = "kf-protocol-api"}
 kf-protocol-derive = { version = "0.2.0", path = "kf-protocol-derive"}
-kf-protocol-transport = { version = "2.0.2", path = "kf-protocol-transport"}
-kf-protocol-message = { version = "1.0.0", path = "kf-protocol-message"}
-kf-protocol-fs = { version = "2.0.0", path = "kf-protocol-fs"}
+kf-protocol-transport = { version = "2.0.0", path = "kf-protocol-transport"}
+kf-protocol-message = { version = "2.0.0", path = "kf-protocol-message"}
+kf-protocol-fs = { version = "3.0.0", path = "kf-protocol-fs"}
 
 [dev-dependencies]
-flv-util = { version = "0.2.0 "}
+flv-util = { version = "0.4.0"}

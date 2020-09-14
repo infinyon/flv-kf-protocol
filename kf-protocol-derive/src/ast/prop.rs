@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
 use syn::{Field, Lit, Meta, NestedMeta, Error};
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct Prop {
     pub field_name: String,
     pub varint: bool,
