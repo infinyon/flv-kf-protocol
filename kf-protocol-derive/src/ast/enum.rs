@@ -1,7 +1,10 @@
 use syn::{
     Expr, Fields, FieldsNamed, FieldsUnnamed, Generics, Ident, ItemEnum, Lit, Meta, NestedMeta,
-    Variant,
+    Variant, ExprLit, ExprUnary, Error
 };
+use syn::spanned::Spanned;
+use proc_macro2::TokenStream;
+use quote::quote;
 
 pub(crate) struct KfEnum {
     pub enum_ident: Ident,
@@ -10,14 +13,16 @@ pub(crate) struct KfEnum {
 }
 
 impl KfEnum {
-    pub fn from_ast(item: &ItemEnum) -> syn::Result<Self> {
-        let enum_ident = item.ident.clone();
+    pub fn from_ast(item: ItemEnum) -> syn::Result<Self> {
+        
+        let enum_ident = item.ident;
+        
         let mut props = vec![];
-        for variant in &item.variants {
+        for variant in item.variants {
             props.push(EnumProp::from_ast(variant)?);
         }
 
-        let generics = item.generics.clone();
+        let generics = item.generics;
 
         Ok(KfEnum {
             enum_ident,
@@ -27,15 +32,34 @@ impl KfEnum {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug)]
+pub(crate) enum DiscrimantExpr {
+    Lit(ExprLit),
+    Unary(ExprUnary)
+}
+
+impl DiscrimantExpr {
+
+    pub fn as_token_stream(&self) -> TokenStream {
+        match self {
+            Self::Lit(exp) => quote! { #exp },
+            Self::Unary(exp) => quote! { #exp }
+        }
+    }
+}
+
+
+
+#[derive(Default,Debug)]
 pub(crate) struct EnumProp {
     pub variant_name: String,
     pub tag: Option<String>,
-    pub discriminant: Option<String>,
+    pub discriminant: Option<DiscrimantExpr>,
     pub kind: FieldKind,
 }
 impl EnumProp {
-    pub fn from_ast(variant: &Variant) -> syn::Result<Self> {
+    pub fn from_ast(variant: Variant) -> syn::Result<Self> {
+        
         let mut prop = EnumProp::default();
         let variant_ident = variant.ident.clone();
         prop.variant_name = variant_ident.to_string();
@@ -58,7 +82,24 @@ impl EnumProp {
                 }
             }
         }
-        prop.discriminant = if let Some((_, Expr::Lit(elit))) = &variant.discriminant {
+        prop.discriminant = if let Some((_,discriminant)) = variant.discriminant {
+            match discriminant {
+                Expr::Lit(elit) =>  {
+                    Some(DiscrimantExpr::Lit(elit))
+                },
+                Expr::Unary(elit) => {
+                    Some(DiscrimantExpr::Unary(elit))
+                },
+                _ => {
+                    return Err(Error::new(discriminant.span(), "not supported discriminant type"))
+                }
+            }
+        } else {
+            None
+        };
+        
+        /*
+        if let Some((_, Expr::Lit(elit))) = &variant.discriminant {
             if let Lit::Int(lit_int) = &elit.lit {
                 Some(lit_int.base10_digits().to_owned())
             } else {
@@ -67,6 +108,7 @@ impl EnumProp {
         } else {
             None
         };
+        */
         prop.kind = match &variant.fields {
             Fields::Named(struct_like) => FieldKind::Named(struct_like.clone()),
             Fields::Unnamed(tuple_like) => FieldKind::Unnamed(tuple_like.clone()),
@@ -76,6 +118,7 @@ impl EnumProp {
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum FieldKind {
     Named(FieldsNamed),
     Unnamed(FieldsUnnamed),

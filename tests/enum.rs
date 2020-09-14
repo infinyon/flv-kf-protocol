@@ -285,3 +285,29 @@ fn test_simple_conversion() {
     assert_eq!(key_enum,TestWideEnum::Echo);
 
 }
+
+
+
+
+#[fluvio_kf(encode_discriminant)]
+#[repr(i16)]
+#[derive(PartialEq, Debug,Encode, Decode)]
+pub enum TestErrorCode {
+    // The server experienced an unexpected error when processing the request
+    UnknownServerError = -1,
+    None = 0
+}
+
+impl Default for TestErrorCode {
+    fn default() -> Self {
+        TestErrorCode::None
+    }
+}
+
+
+#[test]
+fn test_error_code_from_conversion2() {
+    let val: i16 = 0;
+    let erro_code: TestErrorCode = val.try_into().expect("convert");
+    assert_eq!(erro_code, TestErrorCode::None);
+}

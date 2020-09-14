@@ -102,6 +102,7 @@ fn generate_try_enum_from_kf_enum(
     enum_ident: &Ident,
     attrs: &ContainerAttributes,
 ) -> TokenStream {
+
     let mut variant_expr = vec![];
     for (idx, prop) in props.iter().enumerate() {
         let id = &format_ident!("{}", prop.variant_name);
@@ -113,11 +114,8 @@ fn generate_try_enum_from_kf_enum(
             }
         } else if attrs.encode_discriminant {
             if let Some(dsc) = &prop.discriminant {
-                if let Ok(literal) = TokenStream::from_str(dsc) {
-                    literal
-                } else {
-                    LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
-                }
+                
+                dsc.as_token_stream()
             } else {
                 LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
             }

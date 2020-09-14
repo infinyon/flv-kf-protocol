@@ -136,11 +136,7 @@ fn parse_enum_variants_encoding(
             }
         } else if attrs.encode_discriminant {
             if let Some(dsc) = &prop.discriminant {
-                if let Ok(literal) = TokenStream::from_str(dsc) {
-                    literal
-                } else {
-                    LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
-                }
+                dsc.as_token_stream()
             } else {
                 LitInt::new(&idx.to_string(), Span::call_site()).to_token_stream()
             }

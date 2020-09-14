@@ -27,7 +27,7 @@ impl Parse for DeriveItem {
             Ok(DeriveItem::Struct(kf_struct, attrs))
         } else if lookahead.peek(Token![enum]) {
             let item_enum: ItemEnum = input.parse()?;
-            let kf_enum = KfEnum::from_ast(&item_enum)?;
+            let kf_enum = KfEnum::from_ast(item_enum)?;
             Ok(DeriveItem::Enum(kf_enum, attrs))
         } else {
             Err(lookahead.error())
