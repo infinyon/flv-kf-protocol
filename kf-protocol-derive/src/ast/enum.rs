@@ -32,7 +32,7 @@ impl KfEnum {
     }
 }
 
-#[derive(Debug)]
+
 pub(crate) enum DiscrimantExpr {
     Lit(ExprLit),
     Unary(ExprUnary)
@@ -50,7 +50,7 @@ impl DiscrimantExpr {
 
 
 
-#[derive(Default,Debug)]
+#[derive(Default)]
 pub(crate) struct EnumProp {
     pub variant_name: String,
     pub tag: Option<String>,
@@ -118,7 +118,6 @@ impl EnumProp {
     }
 }
 
-#[derive(Debug)]
 pub(crate) enum FieldKind {
     Named(FieldsNamed),
     Unnamed(FieldsUnnamed),
