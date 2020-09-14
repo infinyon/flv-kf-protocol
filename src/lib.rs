@@ -15,18 +15,22 @@ pub mod bytes {
     pub use kf_protocol_core::bytes::BufMutExt;
 }
 
+#[cfg(feature = "api")]
 pub mod api {
     pub use kf_protocol_api::*;
 }
 
+#[cfg(feature = "transport")]
 pub mod transport {
     pub use kf_protocol_transport::KfCodec;
 }
 
+#[cfg(feature = "message")]
 pub mod message {
     pub use kf_protocol_message::*;
 }
 
+#[cfg(feature = "fs")]
 pub mod fs {
     pub use kf_protocol_fs::*;
 }
