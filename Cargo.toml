@@ -9,7 +9,7 @@ license = "Apache-2.0"
 categories = ["encoding","api-bindings"]
 
 [features]
-default = ["api","message","transport","fs"]
+# default = ["api","message","transport","fs"]
 api = ["kf-protocol-api"]
 message = ["kf-protocol-message"]
 transport = ["kf-protocol-transport"]
